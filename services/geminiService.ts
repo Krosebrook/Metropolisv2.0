@@ -7,9 +7,6 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AIGoal, BuildingType, CityStats, Grid, NewsItem } from "../types";
 import { BUILDINGS } from "../constants";
 
-// Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 // Using gemini-3-pro-preview for complex reasoning and city building logic
 const modelId = 'gemini-3-pro-preview';
 
@@ -43,6 +40,10 @@ const goalSchema = {
 };
 
 export const generateCityGoal = async (stats: CityStats, grid: Grid): Promise<AIGoal | null> => {
+  // Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+  // Creating a new instance right before the call ensures the latest API key is used.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  
   // Count buildings
   const counts: Record<string, number> = {};
   grid.flat().forEach(tile => {
@@ -97,6 +98,10 @@ const newsSchema = {
 };
 
 export const generateNewsEvent = async (stats: CityStats, recentAction: string | null): Promise<NewsItem | null> => {
+  // Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+  // Creating a new instance right before the call ensures the latest API key is used.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
   const context = `City Stats - Pop: ${stats.population}, Money: ${stats.money}, Day: ${stats.day}. ${recentAction ? `Recent Action: ${recentAction}` : ''}`;
   const prompt = "Generate a very short, isometric-sim-city style news headline based on the city state. Can be funny, cynical, or celebratory.";
 

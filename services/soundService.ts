@@ -36,12 +36,30 @@ class SoundService {
     osc.stop(ctx.currentTime + 0.15);
   }
 
+  playUpgrade() {
+    const ctx = this.getCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(440, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.2);
+    
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + 0.2);
+  }
+
   playDemolish() {
     const ctx = this.getCtx();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     
-    // Gritty square wave for demolition "crunch"
     osc.type = 'square';
     osc.frequency.setValueAtTime(110, ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.2);
