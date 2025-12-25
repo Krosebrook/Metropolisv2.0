@@ -5,14 +5,15 @@
 */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Grid, TileData, BuildingType, CityStats, AIGoal, NewsItem } from './types';
-import { GRID_SIZE, BUILDINGS, TICK_RATE_MS, INITIAL_MONEY, MAX_LEVEL } from './constants';
+import { GRID_SIZE, TICK_RATE_MS, INITIAL_MONEY } from './constants';
 import IsoMap from './components/IsoMap';
 import UIOverlay from './components/UIOverlay';
 import StartScreen from './components/StartScreen';
-import { generateCityGoal, generateNewsEvent } from './services/geminiService';
+import { generateNewsEvent } from './services/geminiService';
 import { soundService } from './services/soundService';
 import { SimulationService } from './services/simulationService';
 import { SaveService } from './services/saveService';
+import { ActionService, ActionResponse } from './services/actionService';
 
 const createInitialGrid = (): Grid => {
   const grid: Grid = [];
@@ -38,8 +39,8 @@ function App() {
   const [grid, setGrid] = useState<Grid>(createInitialGrid);
   const [stats, setStats] = useState<CityStats>(INITIAL_STATS);
   const [selectedTool, setSelectedTool] = useState<BuildingType>(BuildingType.Road);
-  const [currentGoal, setCurrentGoal] = useState<AIGoal | null>(null);
-  const [isGeneratingGoal, setIsGeneratingGoal] = useState(false);
+  const [currentGoal] = useState<AIGoal | null>(null);
+  const [isGeneratingGoal] = useState(false);
   const [newsFeed, setNewsFeed] = useState<NewsItem[]>([]);
 
   const gridRef = useRef(grid);
@@ -81,84 +82,37 @@ function App() {
     if (news) setNewsFeed(prev => [...prev.slice(-10), news]);
   };
 
+  const addNewsEntry = useCallback((text: string, type: NewsItem['type']) => {
+    setNewsFeed(prev => [...prev.slice(-9), { id: Date.now().toString(), text, type }]);
+  }, []);
+
   const handleTileClick = useCallback((x: number, y: number) => {
     if (!gameStarted) return;
-    const tool = selectedTool;
-    const currentTile = grid[y][x];
     
-    // 1. Upgrade Tool Logic
-    if (tool === BuildingType.Upgrade) {
-      const bType = currentTile.buildingType;
-      // Only upgrade buildings that have levels (exclude road and none)
-      const isUpgradable = bType !== BuildingType.None && bType !== BuildingType.Road && bType !== BuildingType.Upgrade;
+    let result: ActionResponse;
+
+    if (selectedTool === BuildingType.Upgrade) {
+      result = ActionService.upgradeTile(grid, stats, x, y);
+    } else if (selectedTool === BuildingType.None) {
+      result = ActionService.bulldozeTile(grid, stats, x, y);
+    } else {
+      result = ActionService.buildTile(grid, stats, x, y, selectedTool);
+    }
+
+    if (result.success) {
+      setGrid(result.newGrid);
+      setStats(result.newStats);
       
-      if (isUpgradable) {
-        if (currentTile.level < MAX_LEVEL) {
-          const baseCost = BUILDINGS[bType].cost;
-          const upgradeCost = Math.floor(baseCost * currentTile.level * 1.5);
-          
-          if (stats.money >= upgradeCost) {
-            // Immutable grid update
-            const newGrid = grid.map((row, ridx) => ridx === y ? [...row] : row);
-            newGrid[y][x] = { ...currentTile, level: currentTile.level + 1 };
-            
-            setGrid(newGrid);
-            setStats(s => ({ ...s, money: s.money - upgradeCost }));
-            soundService.playUpgrade();
-            
-            setNewsFeed(prev => [...prev.slice(-9), {
-              id: Date.now().toString(),
-              text: `${BUILDINGS[bType].name} upgraded to Level ${currentTile.level + 1}.`,
-              type: 'positive'
-            }]);
-          } else {
-            setNewsFeed(prev => [...prev.slice(-9), {
-              id: Date.now().toString(),
-              text: `Insufficient funds for upgrade ($${upgradeCost} needed).`,
-              type: 'negative'
-            }]);
-          }
-        } else {
-          setNewsFeed(prev => [...prev.slice(-9), {
-            id: Date.now().toString(),
-            text: "This building is already at maximum level.",
-            type: 'neutral'
-          }]);
-        }
-      }
-      return;
+      // Play sound based on tool
+      if (selectedTool === BuildingType.Upgrade) soundService.playUpgrade();
+      else if (selectedTool === BuildingType.None) soundService.playDemolish();
+      else soundService.playBuild();
     }
 
-    // 2. Bulldoze Tool Logic
-    if (tool === BuildingType.None) {
-      if (currentTile.buildingType !== BuildingType.None) {
-        const newGrid = grid.map((row, ridx) => ridx === y ? [...row] : row);
-        newGrid[y][x] = { ...currentTile, buildingType: BuildingType.None, level: 1 };
-        setGrid(newGrid);
-        setStats(s => ({ ...s, money: Math.max(0, s.money - 10) })); // Small demolition fee
-        soundService.playDemolish();
-      }
-      return;
+    if (result.message) {
+      addNewsEntry(result.message, result.type);
     }
-
-    // 3. Build Tool Logic
-    const config = BUILDINGS[tool];
-    if (currentTile.buildingType === BuildingType.None) {
-      if (stats.money >= config.cost) {
-        const newGrid = grid.map((row, ridx) => ridx === y ? [...row] : row);
-        newGrid[y][x] = { ...currentTile, buildingType: tool, level: 1 };
-        setGrid(newGrid);
-        setStats(s => ({ ...s, money: s.money - config.cost }));
-        soundService.playBuild();
-      } else {
-        setNewsFeed(prev => [...prev.slice(-9), {
-          id: Date.now().toString(),
-          text: `Cannot afford ${config.name} ($${config.cost}).`,
-          type: 'negative'
-        }]);
-      }
-    }
-  }, [grid, stats.money, selectedTool, gameStarted]);
+  }, [grid, stats, selectedTool, gameStarted, addNewsEntry]);
 
   const handleStart = (enabled: boolean) => {
     setAiEnabled(enabled);

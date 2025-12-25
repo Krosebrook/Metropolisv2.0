@@ -13,10 +13,15 @@ import { GRID_SIZE, BUILDINGS, MAX_LEVEL } from '../constants';
 // Fix for JSX intrinsic elements errors in Three.js / React Three Fiber
 // This ensures that lowercase Three.js elements like <mesh /> and <group /> 
 // are correctly typed for the TypeScript compiler.
-// Declaring IntrinsicElements in the global JSX namespace satisfies common compiler configurations.
+// Declaring IntrinsicElements in both global JSX and React.JSX namespaces satisfies common compiler configurations.
 declare global {
   namespace JSX {
     interface IntrinsicElements extends ThreeElements {}
+  }
+  namespace React {
+    namespace JSX {
+      interface IntrinsicElements extends ThreeElements {}
+    }
   }
 }
 
