@@ -7,61 +7,52 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AIGoal, BuildingType, CityStats, Grid, NewsItem } from "../types";
 import { BUILDINGS } from "../constants";
 
-// Using gemini-3-pro-preview for complex reasoning and city building logic
-const modelId = 'gemini-3-pro-preview';
-
-// --- Goal Generation ---
+const modelId = 'gemini-3-flash-preview';
 
 const goalSchema = {
   type: Type.OBJECT,
   properties: {
     description: {
       type: Type.STRING,
-      description: "A short, creative description of the goal from the perspective of city council or citizens.",
+      description: "A mystical, fairytale-themed description of the quest or kingdom goal.",
     },
     targetType: {
       type: Type.STRING,
-      description: "The metric to track. Must be one of: population, money, building_count.",
+      description: "Must be: population, money, building_count.",
     },
     targetValue: {
       type: Type.INTEGER,
-      description: "The target numeric value to reach.",
+      description: "Target numeric value.",
     },
     buildingType: {
       type: Type.STRING,
-      description: "Required if targetType is building_count. Must be one of: Residential, Commercial, Industrial, Park, Road.",
+      description: "Used if targetType is building_count.",
     },
     reward: {
       type: Type.INTEGER,
-      description: "Monetary reward for completion.",
+      description: "Gold reward for completion.",
     },
   },
   required: ['description', 'targetType', 'targetValue', 'reward'],
 };
 
 export const generateCityGoal = async (stats: CityStats, grid: Grid): Promise<AIGoal | null> => {
-  // Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
-  // Creating a new instance right before the call ensures the latest API key is used.
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
-  // Count buildings
   const counts: Record<string, number> = {};
   grid.flat().forEach(tile => {
     counts[tile.buildingType] = (counts[tile.buildingType] || 0) + 1;
   });
 
   const context = `
-    Current City Stats:
+    Realm Stats:
     Day: ${stats.day}
-    Money: $${stats.money}
-    Population: ${stats.population}
-    Buildings: ${JSON.stringify(counts)}
-    Building Costs/Stats: ${JSON.stringify(
-      Object.values(BUILDINGS).filter(b => b.type !== BuildingType.None).map(b => ({type: b.type, cost: b.cost, pop: b.popGen, income: b.incomeGen}))
-    )}
+    Gold: ${stats.money}g
+    Subjects: ${stats.population}
+    Structures: ${JSON.stringify(counts)}
   `;
 
-  const prompt = `You are the AI City Advisor for a simulation game. Based on the current city stats, generate a challenging but achievable short-term goal for the player to help the city grow. Return JSON.`;
+  const prompt = `You are the Royal Wizard. Generate a mystical 'Quest' for the player. Use high-fantasy language. Return JSON.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -70,40 +61,30 @@ export const generateCityGoal = async (stats: CityStats, grid: Grid): Promise<AI
       config: {
         responseMimeType: "application/json",
         responseSchema: goalSchema,
-        temperature: 0.7,
       },
     });
 
-    // Extracting text output from GenerateContentResponse using .text property
     if (response.text) {
-      const jsonStr = response.text.trim();
-      const goalData = JSON.parse(jsonStr) as Omit<AIGoal, 'completed'>;
-      return { ...goalData, completed: false };
+      const data = JSON.parse(response.text.trim());
+      return { ...data, completed: false };
     }
-  } catch (error) {
-    console.error("Error generating goal:", error);
-  }
+  } catch (error) { console.error(error); }
   return null;
 };
-
-// --- News Feed Generation ---
 
 const newsSchema = {
   type: Type.OBJECT,
   properties: {
-    text: { type: Type.STRING, description: "A one-sentence news headline representing life in the city." },
-    type: { type: Type.STRING, description: "The type of news. Must be one of: positive, negative, neutral." },
+    text: { type: Type.STRING, description: "A fairytale headline (e.g., 'Dragon spotted near tavern')." },
+    type: { type: Type.STRING, description: "positive, negative, neutral." },
   },
   required: ['text', 'type'],
 };
 
 export const generateNewsEvent = async (stats: CityStats, recentAction: string | null): Promise<NewsItem | null> => {
-  // Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
-  // Creating a new instance right before the call ensures the latest API key is used.
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-  const context = `City Stats - Pop: ${stats.population}, Money: ${stats.money}, Day: ${stats.day}. ${recentAction ? `Recent Action: ${recentAction}` : ''}`;
-  const prompt = "Generate a very short, isometric-sim-city style news headline based on the city state. Can be funny, cynical, or celebratory.";
+  const context = `Kingdom - Subjects: ${stats.population}, Gold: ${stats.money}, Day: ${stats.day}.`;
+  const prompt = "Generate a one-sentence news scroll for a fairytale kingdom. Use whimsical or mystical language.";
 
   try {
     const response = await ai.models.generateContent({
@@ -112,22 +93,17 @@ export const generateNewsEvent = async (stats: CityStats, recentAction: string |
       config: {
         responseMimeType: "application/json",
         responseSchema: newsSchema,
-        temperature: 1.1,
       },
     });
 
-    // Extracting text output from GenerateContentResponse using .text property
     if (response.text) {
-      const jsonStr = response.text.trim();
-      const data = JSON.parse(jsonStr);
+      const data = JSON.parse(response.text.trim());
       return {
-        id: Date.now().toString() + Math.random(),
+        id: Math.random().toString(),
         text: data.text,
         type: data.type,
       };
     }
-  } catch (error) {
-    console.error("Error generating news:", error);
-  }
+  } catch (error) { console.error(error); }
   return null;
 };

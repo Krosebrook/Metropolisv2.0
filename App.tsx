@@ -20,17 +20,39 @@ const createInitialGrid = (): Grid => {
   for (let y = 0; y < GRID_SIZE; y++) {
     const row: TileData[] = [];
     for (let x = 0; x < GRID_SIZE; x++) {
-      row.push({ x, y, buildingType: BuildingType.None, level: 1, hasPower: true, hasWater: true, happiness: 100 });
+      // Fix: Use property names from types.ts (hasMana, hasEssence, hasGuards, hasMagicSafety, hasWisdom)
+      row.push({ 
+        x, 
+        y, 
+        buildingType: BuildingType.None, 
+        level: 1, 
+        hasMana: true, 
+        hasEssence: true, 
+        hasGuards: false, 
+        hasMagicSafety: false, 
+        hasWisdom: false, 
+        happiness: 100 
+      });
     }
     grid.push(row);
   }
   return grid;
 };
 
+// Fix: Use property names from types.ts (manaSupply, essenceSupply, manaUsage, essenceUsage)
 const INITIAL_STATS: CityStats = {
-  money: INITIAL_MONEY, population: 0, day: 1, happiness: 100, 
-  powerSupply: 0, waterSupply: 0, powerUsage: 0, waterUsage: 0,
-  weather: 'clear', time: 10
+  money: INITIAL_MONEY, 
+  population: 0, 
+  day: 1, 
+  happiness: 100, 
+  manaSupply: 0, 
+  essenceSupply: 0, 
+  manaUsage: 0, 
+  essenceUsage: 0,
+  maintenanceTotal: 0,
+  incomeTotal: 0,
+  weather: 'clear', 
+  time: 10
 };
 
 function App() {
@@ -104,9 +126,13 @@ function App() {
       setStats(result.newStats);
       
       // Play sound based on tool
-      if (selectedTool === BuildingType.Upgrade) soundService.playUpgrade();
-      else if (selectedTool === BuildingType.None) soundService.playDemolish();
-      else soundService.playBuild();
+      if (selectedTool === BuildingType.Upgrade) {
+        soundService.playUpgrade();
+      } else if (selectedTool === BuildingType.None) {
+        soundService.playDemolish();
+      } else {
+        soundService.playBuild(selectedTool);
+      }
     }
 
     if (result.message) {
@@ -142,6 +168,7 @@ function App() {
           onClaimReward={() => {}}
           isGeneratingGoal={isGeneratingGoal}
           aiEnabled={aiEnabled}
+          grid={grid}
         />
       )}
       <style>{`

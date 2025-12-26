@@ -5,27 +5,33 @@
 */
 export enum BuildingType {
   None = 'None',
-  Road = 'Road',
-  Residential = 'Residential',
-  Commercial = 'Commercial',
-  Industrial = 'Industrial',
-  Park = 'Park',
-  PowerPlant = 'PowerPlant',
-  WaterTower = 'WaterTower',
-  Landmark = 'Landmark',
-  Upgrade = 'Upgrade',
+  Road = 'Cobblestone',
+  Residential = 'Cottage',
+  Commercial = 'Tavern',
+  Industrial = 'Mine',
+  Park = 'EnchantedForest',
+  PowerPlant = 'WizardTower', // Magic Source
+  WaterTower = 'AncientWell',   // Essence Source
+  Landmark = 'GreatCastle',
+  Upgrade = 'Enhance',
+  // Services
+  PoliceStation = 'GuardPost',
+  FireStation = 'MageSanctum',
+  School = 'AlchemyAcademy',
 }
 
 export interface BuildingConfig {
   type: BuildingType;
   cost: number;
+  maintenance: number; 
   name: string;
   description: string;
   color: string;
   popGen: number;
   incomeGen: number;
-  powerReq: number;
-  waterReq: number;
+  manaReq: number;   // Replaced powerReq
+  essenceReq: number; // Replaced waterReq
+  serviceRadius?: number;
   isUtility?: boolean;
 }
 
@@ -34,24 +40,29 @@ export interface TileData {
   y: number;
   buildingType: BuildingType;
   level: number;
-  hasPower: boolean;
-  hasWater: boolean;
-  happiness: number; // 0 to 100
+  hasMana: boolean;   // Replaced hasPower
+  hasEssence: boolean; // Replaced hasWater
+  hasGuards: boolean;  // Replaced hasPolice
+  hasMagicSafety: boolean; // Replaced hasFire
+  hasWisdom: boolean;  // Replaced hasSchool
+  happiness: number; 
 }
 
 export type Grid = TileData[][];
 
 export interface CityStats {
-  money: number;
-  population: number;
+  money: number; // Gold
+  population: number; // Subjects
   day: number;
   happiness: number;
-  powerSupply: number;
-  waterSupply: number;
-  powerUsage: number;
-  waterUsage: number;
+  manaSupply: number;
+  essenceSupply: number;
+  manaUsage: number;
+  essenceUsage: number;
+  maintenanceTotal: number;
+  incomeTotal: number;
   weather: 'clear' | 'rain' | 'storm';
-  time: number; // 0 to 24
+  time: number;
 }
 
 export interface AIGoal {
@@ -67,10 +78,4 @@ export interface NewsItem {
   id: string;
   text: string;
   type: 'positive' | 'negative' | 'neutral' | 'urgent';
-}
-
-export interface SaveData {
-  grid: Grid;
-  stats: CityStats;
-  day: number;
 }

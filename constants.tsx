@@ -8,37 +8,46 @@ import { BuildingConfig, BuildingType } from './types';
 export const GRID_SIZE = 15;
 export const MAX_LEVEL = 3;
 export const TICK_RATE_MS = 2500;
-export const INITIAL_MONEY = 1500;
+export const INITIAL_MONEY = 3000; // Starting Gold
 
 export const BUILDINGS: Record<BuildingType, BuildingConfig> = {
   [BuildingType.None]: {
-    type: BuildingType.None, cost: 0, name: 'Bulldoze', description: 'Clear tile', color: '#ef4444', popGen: 0, incomeGen: 0, powerReq: 0, waterReq: 0
+    type: BuildingType.None, cost: 0, maintenance: 0, name: 'Banish', description: 'Clear tile', color: '#7f1d1d', popGen: 0, incomeGen: 0, manaReq: 0, essenceReq: 0
   },
   [BuildingType.Upgrade]: {
-    type: BuildingType.Upgrade, cost: 0, name: 'Upgrade', description: 'Level up', color: '#a855f7', popGen: 0, incomeGen: 0, powerReq: 0, waterReq: 0
+    type: BuildingType.Upgrade, cost: 0, maintenance: 0, name: 'Enhance', description: 'Infuse with more magic', color: '#d946ef', popGen: 0, incomeGen: 0, manaReq: 0, essenceReq: 0
   },
   [BuildingType.Road]: {
-    type: BuildingType.Road, cost: 10, name: 'Road', description: 'Connects city', color: '#374151', popGen: 0, incomeGen: 0, powerReq: 0, waterReq: 0
+    type: BuildingType.Road, cost: 15, maintenance: 1, name: 'Cobblestone', description: 'Royal path', color: '#4b5563', popGen: 0, incomeGen: 0, manaReq: 0, essenceReq: 0
   },
   [BuildingType.Residential]: {
-    type: BuildingType.Residential, cost: 100, name: 'House', description: '+Pop', color: '#f87171', popGen: 5, incomeGen: 0, powerReq: 1, waterReq: 1
+    type: BuildingType.Residential, cost: 120, maintenance: 4, name: 'Cottage', description: 'Home for subjects', color: '#fca5a5', popGen: 6, incomeGen: 0, manaReq: 1, essenceReq: 1
   },
   [BuildingType.Commercial]: {
-    type: BuildingType.Commercial, cost: 250, name: 'Shop', description: '+$$', color: '#60a5fa', popGen: 0, incomeGen: 20, powerReq: 2, waterReq: 1
+    type: BuildingType.Commercial, cost: 300, maintenance: 12, name: 'Tavern', description: 'Merchant hub', color: '#fbbf24', popGen: 0, incomeGen: 35, manaReq: 2, essenceReq: 2
   },
   [BuildingType.Industrial]: {
-    type: BuildingType.Industrial, cost: 500, name: 'Factory', description: '++$$', color: '#facc15', popGen: 0, incomeGen: 50, powerReq: 5, waterReq: 3
+    type: BuildingType.Industrial, cost: 600, maintenance: 35, name: 'Mine', description: 'Extract gold and jewels', color: '#9ca3af', popGen: 0, incomeGen: 90, manaReq: 5, essenceReq: 3
   },
   [BuildingType.Park]: {
-    type: BuildingType.Park, cost: 150, name: 'Park', description: '+Happy', color: '#4ade80', popGen: 1, incomeGen: 0, powerReq: 0, waterReq: 2
+    type: BuildingType.Park, cost: 200, maintenance: 8, name: 'Enchanted Forest', description: 'Sacred grove', color: '#22c55e', popGen: 2, incomeGen: 0, manaReq: 0, essenceReq: 2, serviceRadius: 4
   },
   [BuildingType.PowerPlant]: {
-    type: BuildingType.PowerPlant, cost: 800, name: 'Power', description: '+50 Power', color: '#fb923c', popGen: 0, incomeGen: -20, powerReq: 0, waterReq: 2, isUtility: true
+    type: BuildingType.PowerPlant, cost: 1500, maintenance: 120, name: 'Wizard Tower', description: 'Generates Mana', color: '#a855f7', popGen: 0, incomeGen: 0, manaReq: 0, essenceReq: 4, isUtility: true
   },
   [BuildingType.WaterTower]: {
-    type: BuildingType.WaterTower, cost: 600, name: 'Water', description: '+50 Water', color: '#38bdf8', popGen: 0, incomeGen: -15, powerReq: 2, waterReq: 0, isUtility: true
+    type: BuildingType.WaterTower, cost: 900, maintenance: 60, name: 'Ancient Well', description: 'Sacred Essence flow', color: '#3b82f6', popGen: 0, incomeGen: 0, manaReq: 4, essenceReq: 0, isUtility: true
+  },
+  [BuildingType.PoliceStation]: {
+    type: BuildingType.PoliceStation, cost: 700, maintenance: 40, name: 'Guard Post', description: 'Protects against bandits', color: '#2563eb', popGen: 0, incomeGen: 0, manaReq: 3, essenceReq: 2, serviceRadius: 5
+  },
+  [BuildingType.FireStation]: {
+    type: BuildingType.FireStation, cost: 700, maintenance: 40, name: 'Mage Sanctum', description: 'Wards against dragons and fires', color: '#dc2626', popGen: 0, incomeGen: 0, manaReq: 5, essenceReq: 8, serviceRadius: 5
+  },
+  [BuildingType.School]: {
+    type: BuildingType.School, cost: 1000, maintenance: 70, name: 'Alchemy Academy', description: 'Teach forbidden wisdom', color: '#059669', popGen: 0, incomeGen: 0, manaReq: 10, essenceReq: 5, serviceRadius: 6
   },
   [BuildingType.Landmark]: {
-    type: BuildingType.Landmark, cost: 2500, name: 'Monolith', description: 'High Prestige', color: '#e879f9', popGen: 0, incomeGen: 100, powerReq: 10, waterReq: 5
+    type: BuildingType.Landmark, cost: 6000, maintenance: 300, name: 'Great Castle', description: 'The Heart of the Kingdom', color: '#eab308', popGen: 20, incomeGen: 250, manaReq: 25, essenceReq: 20
   },
 };
