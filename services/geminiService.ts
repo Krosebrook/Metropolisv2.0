@@ -13,7 +13,7 @@ const goalSchema = {
   properties: {
     description: {
       type: Type.STRING,
-      description: "A mystical, fairytale-themed description of the quest.",
+      description: "A mystical, fairytale-themed description of the quest from the Royal Wizard.",
     },
     targetType: {
       type: Type.STRING,
@@ -22,15 +22,16 @@ const goalSchema = {
     },
     targetValue: {
       type: Type.INTEGER,
-      description: "Target numeric value.",
+      description: "Target numeric value. Keep it challenging but reachable.",
     },
     buildingType: {
       type: Type.STRING,
+      enum: Object.values(BuildingType),
       description: "Required building type if targetType is building_count.",
     },
     reward: {
       type: Type.INTEGER,
-      description: "Gold reward for completion.",
+      description: "Gold reward for completion (typically 500-2000).",
     },
   },
   required: ['description', 'targetType', 'targetValue', 'reward'],
@@ -64,9 +65,16 @@ export const generateCityGoal = async (stats: CityStats, grid: Grid): Promise<AI
     Gold: ${stats.money}
     Population: ${stats.population}
     Buildings: ${JSON.stringify(counts)}
+    Kingdom Mood: ${stats.happiness}%
     
-    You are the Royal Wizard. Create a specific, magical objective for the Sovereign.
-    Use epic, high-fantasy language. 
+    You are the Ancient Royal Wizard. Create a specific, magical decree or prophecy for the Sovereign to fulfill.
+    Choose one of these goals:
+    1. Reach a population threshold.
+    2. Reach a treasury gold count.
+    3. Construct a certain number of specific buildings (like 3 Taverns or 2 Wizard Towers).
+    4. Reach a high happiness level.
+    
+    The description must be flavorful, high-fantasy, and address the current state of the kingdom.
   `;
 
   try {
@@ -102,7 +110,8 @@ export const generateNewsEvent = async (stats: CityStats, recentAction: string |
     Kingdom Snapshot: Pop ${stats.population}, Gold ${stats.money}, Day ${stats.day}.
     Recent Event: ${recentAction || 'The sun rises over the valley.'}
     
-    Generate a one-sentence news scroll. It should sound like it's from a magical scroll or herald.
+    Generate a one-sentence news scroll update for the herald's parchment.
+    Keep the tone whimsical and atmospheric.
   `;
 
   try {
