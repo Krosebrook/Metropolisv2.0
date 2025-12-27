@@ -47,7 +47,7 @@ const Atmosphere = ({ time, weather }: { time: number, weather: string }) => {
       {/* Increased ambient light at night */}
       <ambientLight intensity={isNight ? 0.15 : 0.45} />
       {/* Pushed fog further back and lightened the color */}
-      <fog attach="fog" args={["#1c1917", 60, 110]} />
+      <fog attach="fog" args={["#0c0a09", 60, 110]} />
     </>
   );
 };
@@ -231,12 +231,12 @@ const IsoMap = ({ grid, onTileClick, hoveredTool, time, weather }: any) => {
                 >
                   <boxGeometry args={[1, 0.45, 1]} />
                   <meshStandardMaterial 
-                    // Lightened ground colors
-                    color={isRoad ? '#262626' : '#44403c'} 
+                    // Updated to lighter forest green as requested (#228b22)
+                    color={isRoad ? '#3d3d3d' : '#228b22'} 
                     roughness={1} 
                   />
-                  {/* Subtle edge lines for ground tiles */}
-                  <Outlines thickness={0.01} color="#57534e" />
+                  {/* Subtle edge lines for ground tiles, adjusted for lighter green */}
+                  <Outlines thickness={0.01} color="#1a661a" />
                 </mesh>
                 
                 {tile.buildingType !== BuildingType.None && !isRoad && (
