@@ -28,6 +28,64 @@ const GEOMETRY = {
   octa: new THREE.OctahedronGeometry(0.5)
 };
 
+/**
+ * Utility to create procedural fairytale textures
+ */
+const createProceduralTexture = (type: 'grass' | 'road', seed: number) => {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  if (type === 'grass') {
+    // Fill background with a base green
+    const baseColors = ['#2e8b57', '#3cb371', '#228b22', '#1e5a1e'];
+    ctx.fillStyle = baseColors[seed % baseColors.length];
+    ctx.fillRect(0, 0, 128, 128);
+
+    // Add noise and "blades"
+    for (let i = 0; i < 400; i++) {
+      const x = Math.random() * 128;
+      const y = Math.random() * 128;
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.1 + Math.random() * 0.1})`;
+      ctx.fillRect(x, y, 2, 2);
+      ctx.fillStyle = `rgba(0, 0, 0, ${0.05 + Math.random() * 0.1})`;
+      ctx.fillRect(x + 1, y + 1, 2, 2);
+    }
+    
+    // Subtle gradient for "tuft" appearance
+    const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 90);
+    gradient.addColorStop(0, 'rgba(255,255,255,0.05)');
+    gradient.addColorStop(1, 'rgba(0,0,0,0.1)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 128, 128);
+  } else {
+    // Road Texture
+    ctx.fillStyle = '#444444';
+    ctx.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 800; i++) {
+      const x = Math.random() * 128;
+      const y = Math.random() * 128;
+      const size = Math.random() * 3;
+      ctx.fillStyle = Math.random() > 0.5 ? '#555555' : '#333333';
+      ctx.fillRect(x, y, size, size);
+    }
+    // Cracks/Joints
+    ctx.strokeStyle = '#222222';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, 64); ctx.lineTo(128, 64);
+    ctx.moveTo(64, 0); ctx.lineTo(64, 128);
+    ctx.stroke();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.anisotropy = 4;
+  return texture;
+};
+
 const Atmosphere = ({ time, weather }: { time: number, weather: string }) => {
   const isNight = time < 6 || time > 18;
   const sunPos = useMemo(() => {
@@ -35,19 +93,16 @@ const Atmosphere = ({ time, weather }: { time: number, weather: string }) => {
     return [Math.cos(angle) * 50, Math.sin(angle) * 50, 0] as [number, number, number];
   }, [time]);
 
-  // Brightened night light so players can see the ground
-  const lightColor = isNight ? "#818cf8" : weather === 'storm' ? "#94a3b8" : "#fffbeb";
-  const lightIntensity = isNight ? 0.25 : weather === 'storm' ? 0.4 : 1.6;
+  const lightColor = isNight ? "#a5b4fc" : weather === 'storm' ? "#94a3b8" : "#fffbeb";
+  const lightIntensity = isNight ? 0.4 : weather === 'storm' ? 0.5 : 1.8;
 
   return (
     <>
       <Sky sunPosition={sunPos} turbidity={weather === 'storm' ? 20 : 0.2} rayleigh={weather === 'storm' ? 10 : 2} />
       {isNight && <Stars radius={100} depth={50} count={5000} factor={6} saturation={1} fade speed={1.5} />}
-      <directionalLight position={sunPos} intensity={lightIntensity} castShadow color={lightColor} shadow-mapSize={[1024, 1024]} />
-      {/* Increased ambient light at night */}
-      <ambientLight intensity={isNight ? 0.15 : 0.45} />
-      {/* Pushed fog further back and lightened the color */}
-      <fog attach="fog" args={["#0c0a09", 60, 110]} />
+      <directionalLight position={sunPos} intensity={lightIntensity} castShadow color={lightColor} shadow-mapSize={[2048, 2048]} />
+      <ambientLight intensity={isNight ? 0.35 : 0.7} />
+      <fog attach="fog" args={["#1a1918", 100, 250]} />
     </>
   );
 };
@@ -122,7 +177,6 @@ const FairytaleBuilding = React.memo(({ tile, time }: { tile: TileData, time: nu
       {showUpgrade && <UpgradeMagic color="#d946ef" />}
       
       <group scale={[1, lScale, 1]}>
-        {/* Conditional Rendering of Building Archetypes */}
         {tile.buildingType === BuildingType.Residential && (
           <group>
             <mesh geometry={GEOMETRY.box} castShadow>
@@ -207,57 +261,76 @@ const IsoMap = ({ grid, onTileClick, hoveredTool, time, weather }: any) => {
   const [hoveredTile, setHoveredTile] = useState<{x: number, y: number} | null>(null);
   const toolConfig = hoveredTool ? BUILDINGS[hoveredTool as BuildingType] : null;
 
+  // Generate varied textures once
+  const textures = useMemo(() => ({
+    grass: [
+      createProceduralTexture('grass', 0),
+      createProceduralTexture('grass', 1),
+      createProceduralTexture('grass', 2),
+      createProceduralTexture('grass', 3),
+    ],
+    road: createProceduralTexture('road', 0)
+  }), []);
+
   return (
     <div className="absolute inset-0 touch-none">
       <Canvas shadows dpr={[1, 2]} gl={{ antialias: true, stencil: false }}>
-        {/* Camera adjusted for larger grid */}
-        <OrthographicCamera makeDefault zoom={40} position={[60, 60, 60]} />
+        <OrthographicCamera makeDefault zoom={40} position={[80, 80, 80]} />
         <MapControls enableRotate={true} enableZoom={true} dampingFactor={0.1} />
         
         <Atmosphere time={time} weather={weather} />
         
         <group>
-          {grid.map((row: TileData[], y: number) => row.map((tile: TileData, x: number) => {
-            const [wx, _, wz] = gridToWorld(x, y);
-            const isRoad = tile.buildingType === BuildingType.Road;
-            
-            return (
-              <group key={`${x}-${y}`} position={[wx, 0, wz]}>
-                <mesh 
-                  receiveShadow 
-                  position={[0, -0.55, 0]} 
-                  onPointerEnter={() => setHoveredTile({x, y})}
-                  onPointerDown={(e) => { e.stopPropagation(); onTileClick(x, y); }}
-                >
-                  <boxGeometry args={[1, 0.45, 1]} />
-                  <meshStandardMaterial 
-                    // Updated to lighter forest green as requested (#228b22)
-                    color={isRoad ? '#3d3d3d' : '#228b22'} 
-                    roughness={1} 
-                  />
-                  {/* Subtle edge lines for ground tiles, adjusted for lighter green */}
-                  <Outlines thickness={0.01} color="#1a661a" />
-                </mesh>
+          {grid.map((row: TileData[], y: number) => row.map((tile: TileData, x: number) => (
+            <group key={`${x}-${y}`}>
+              <mesh 
+                receiveShadow 
+                position={[gridToWorld(x, y)[0], -0.55, gridToWorld(x, y)[2]]} 
+                onPointerEnter={() => setHoveredTile({x, y})}
+                onPointerDown={(e) => { e.stopPropagation(); onTileClick(x, y); }}
+              >
+                <boxGeometry args={[1, 0.45, 1]} />
                 
-                {tile.buildingType !== BuildingType.None && !isRoad && (
+                {(() => {
+                  const isRoad = tile.buildingType === BuildingType.Road;
+                  const noiseIndex = (x * 7 + y * 13) % 4;
+                  const topTexture = isRoad ? textures.road : textures.grass[noiseIndex];
+                  
+                  // Side face colors for 3D depth
+                  const sideColor = isRoad ? '#333333' : '#1e5a1e';
+
+                  return [
+                    <meshStandardMaterial key="0" attach="material-0" color={sideColor} roughness={0.8} />,
+                    <meshStandardMaterial key="1" attach="material-1" color={sideColor} roughness={0.8} />,
+                    <meshStandardMaterial key="2" attach="material-2" map={topTexture} roughness={0.9} />,
+                    <meshStandardMaterial key="3" attach="material-3" color={sideColor} roughness={0.8} />,
+                    <meshStandardMaterial key="4" attach="material-4" color={sideColor} roughness={0.8} />,
+                    <meshStandardMaterial key="5" attach="material-5" color={sideColor} roughness={0.8} />
+                  ];
+                })()}
+                
+                <Outlines thickness={0.01} color={tile.buildingType === BuildingType.Road ? "#1a1a1a" : "#0d3d0d"} />
+              </mesh>
+              
+              {tile.buildingType !== BuildingType.None && tile.buildingType !== BuildingType.Road && (
+                <group position={gridToWorld(x, y)}>
                   <FairytaleBuilding tile={tile} time={time} />
-                )}
-              </group>
-            );
-          }))}
+                </group>
+              )}
+            </group>
+          )))}
 
           {hoveredTile && (
             <group position={[gridToWorld(hoveredTile.x, hoveredTile.y)[0], -0.3, gridToWorld(hoveredTile.x, hoveredTile.y)[2]]}>
               <mesh rotation={[-Math.PI/2, 0, 0]}>
                 <planeGeometry args={[1,1]} />
-                {/* Brighter highlighter for placement */}
-                <meshBasicMaterial color="#fcd34d" transparent opacity={0.4} depthWrite={false} />
-                <Outlines thickness={0.05} color="#fbbf24" />
+                <meshBasicMaterial color="#fbbf24" transparent opacity={0.5} depthWrite={false} />
+                <Outlines thickness={0.06} color="#ffffff" />
               </mesh>
               {toolConfig?.serviceRadius && (
                 <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.01, 0]}>
                   <ringGeometry args={[toolConfig.serviceRadius - 0.05, toolConfig.serviceRadius, 64]} />
-                  <meshBasicMaterial color="#d946ef" transparent opacity={0.6} />
+                  <meshBasicMaterial color="#f472b6" transparent opacity={0.7} />
                 </mesh>
               )}
             </group>

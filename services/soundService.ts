@@ -172,7 +172,7 @@ class SoundService {
       gain.gain.setValueAtTime(0.04, now + delay);
       gain.gain.linearRampToValueAtTime(0, now + delay + 0.05);
       osc.connect(gain).connect(ctx.destination);
-      osc.start(now + delay);
+      soundSource: osc.start(now + delay);
       osc.stop(now + delay + 0.05);
     }
   }
@@ -248,18 +248,13 @@ class SoundService {
     osc.stop(now + 0.1);
   }
 
-  /**
-   * Plays a magical upgrade sound.
-   * Features a base 'flavor' note depending on type, and a rising shimmer based on level.
-   */
   playUpgrade(type: BuildingType, level: number) {
     const ctx = this.getCtx();
     const now = ctx.currentTime;
     
-    // 1. Base Impact flavor
     const baseOsc = ctx.createOscillator();
     const baseGain = ctx.createGain();
-    const levelMulti = 1 + (level * 0.2); // Pitch rises with level
+    const levelMulti = 1 + (level * 0.2);
 
     switch (type) {
       case BuildingType.Residential:
@@ -293,11 +288,9 @@ class SoundService {
     baseOsc.start();
     baseOsc.stop(now + 0.5);
 
-    // 2. Magical Shimmer (Arpeggio)
-    // More complex/faster for higher levels
     const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
-    const particleCount = level * 2; // Level 2: 4 notes, Level 3: 6 notes
-    const speed = 0.08 / level; // Faster for higher levels
+    const particleCount = level * 2;
+    const speed = 0.08 / level;
 
     for (let i = 0; i < Math.min(notes.length, particleCount); i++) {
       const delay = i * speed;
@@ -305,7 +298,6 @@ class SoundService {
       const shimGain = ctx.createGain();
       
       shimOsc.type = 'sine';
-      // Pitch goes up with level and note index
       shimOsc.frequency.setValueAtTime(notes[i] * levelMulti, now + delay);
       
       shimGain.gain.setValueAtTime(0.06, now + delay);
@@ -317,18 +309,52 @@ class SoundService {
     }
   }
 
+  /**
+   * Plays a distinct "Banishment" (Demolish) sound effect.
+   * Consists of a heavy thud and a stone-crumbling noise layer.
+   */
   playDemolish() {
     const ctx = this.getCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(110, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.2);
-    gain.gain.setValueAtTime(0.1, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.2);
+    const now = ctx.currentTime;
+
+    // 1. Low-Frequency Structural Thud
+    const thud = ctx.createOscillator();
+    const thudGain = ctx.createGain();
+    thud.type = 'triangle';
+    thud.frequency.setValueAtTime(100, now);
+    thud.frequency.exponentialRampToValueAtTime(10, now + 0.3);
+    
+    thudGain.gain.setValueAtTime(0.2, now);
+    thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    
+    thud.connect(thudGain).connect(ctx.destination);
+    thud.start();
+    thud.stop(now + 0.3);
+
+    // 2. Stone Crumbling Noise Layer
+    const bufferSize = ctx.sampleRate * 0.4;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1; // White noise
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'lowpass';
+    noiseFilter.frequency.setValueAtTime(1000, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(100, now + 0.4);
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.1, now);
+    noiseGain.gain.linearRampToValueAtTime(0.05, now + 0.1);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+    noise.connect(noiseFilter).connect(noiseGain).connect(ctx.destination);
+    noise.start();
+    noise.stop(now + 0.4);
   }
 
   playReward() {
