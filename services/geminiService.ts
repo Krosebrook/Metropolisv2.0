@@ -5,20 +5,20 @@
 */
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIGoal, BuildingType, CityStats, Grid, NewsItem } from "../types";
-import { BUILDINGS } from "../constants";
 
-const modelId = 'gemini-3-flash-preview';
+const MODEL_NAME = 'gemini-3-flash-preview';
 
 const goalSchema = {
   type: Type.OBJECT,
   properties: {
     description: {
       type: Type.STRING,
-      description: "A mystical, fairytale-themed description of the quest or kingdom goal.",
+      description: "A mystical, fairytale-themed description of the quest.",
     },
     targetType: {
       type: Type.STRING,
-      description: "Must be: population, money, building_count.",
+      enum: ["population", "money", "building_count", "happiness"],
+      description: "The metric the player must reach.",
     },
     targetValue: {
       type: Type.INTEGER,
@@ -26,7 +26,7 @@ const goalSchema = {
     },
     buildingType: {
       type: Type.STRING,
-      description: "Used if targetType is building_count.",
+      description: "Required building type if targetType is building_count.",
     },
     reward: {
       type: Type.INTEGER,
@@ -36,28 +36,43 @@ const goalSchema = {
   required: ['description', 'targetType', 'targetValue', 'reward'],
 };
 
+const newsSchema = {
+  type: Type.OBJECT,
+  properties: {
+    text: { type: Type.STRING, description: "A whimsical fairytale headline." },
+    type: { type: Type.STRING, enum: ["positive", "negative", "neutral", "urgent"] },
+  },
+  required: ['text', 'type'],
+};
+
+/**
+ * Generates a mystical quest from the Royal Wizard
+ */
 export const generateCityGoal = async (stats: CityStats, grid: Grid): Promise<AIGoal | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const counts: Record<string, number> = {};
   grid.flat().forEach(tile => {
-    counts[tile.buildingType] = (counts[tile.buildingType] || 0) + 1;
+    if (tile.buildingType !== BuildingType.None) {
+      counts[tile.buildingType] = (counts[tile.buildingType] || 0) + 1;
+    }
   });
 
-  const context = `
-    Realm Stats:
+  const prompt = `
+    Context:
     Day: ${stats.day}
-    Gold: ${stats.money}g
-    Subjects: ${stats.population}
-    Structures: ${JSON.stringify(counts)}
+    Gold: ${stats.money}
+    Population: ${stats.population}
+    Buildings: ${JSON.stringify(counts)}
+    
+    You are the Royal Wizard. Create a specific, magical objective for the Sovereign.
+    Use epic, high-fantasy language. 
   `;
-
-  const prompt = `You are the Royal Wizard. Generate a mystical 'Quest' for the player. Use high-fantasy language. Return JSON.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: modelId,
-      contents: `${context}\n${prompt}`,
+      model: MODEL_NAME,
+      contents: prompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: goalSchema,
@@ -66,30 +81,34 @@ export const generateCityGoal = async (stats: CityStats, grid: Grid): Promise<AI
 
     if (response.text) {
       const data = JSON.parse(response.text.trim());
-      return { ...data, completed: false };
+      return { 
+        ...data, 
+        id: Math.random().toString(36).substring(7),
+        completed: false 
+      };
     }
-  } catch (error) { console.error(error); }
+  } catch (error) {
+    console.error("Failed to generate quest:", error);
+  }
   return null;
 };
 
-const newsSchema = {
-  type: Type.OBJECT,
-  properties: {
-    text: { type: Type.STRING, description: "A fairytale headline (e.g., 'Dragon spotted near tavern')." },
-    type: { type: Type.STRING, description: "positive, negative, neutral." },
-  },
-  required: ['text', 'type'],
-};
-
+/**
+ * Generates atmospheric world-building news items
+ */
 export const generateNewsEvent = async (stats: CityStats, recentAction: string | null): Promise<NewsItem | null> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const context = `Kingdom - Subjects: ${stats.population}, Gold: ${stats.money}, Day: ${stats.day}.`;
-  const prompt = "Generate a one-sentence news scroll for a fairytale kingdom. Use whimsical or mystical language.";
+  const prompt = `
+    Kingdom Snapshot: Pop ${stats.population}, Gold ${stats.money}, Day ${stats.day}.
+    Recent Event: ${recentAction || 'The sun rises over the valley.'}
+    
+    Generate a one-sentence news scroll. It should sound like it's from a magical scroll or herald.
+  `;
 
   try {
     const response = await ai.models.generateContent({
-      model: modelId,
-      contents: `${context}\n${prompt}`,
+      model: MODEL_NAME,
+      contents: prompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: newsSchema,
@@ -99,11 +118,14 @@ export const generateNewsEvent = async (stats: CityStats, recentAction: string |
     if (response.text) {
       const data = JSON.parse(response.text.trim());
       return {
-        id: Math.random().toString(),
+        id: Math.random().toString(36).substring(7),
         text: data.text,
         type: data.type,
+        timestamp: Date.now()
       };
     }
-  } catch (error) { console.error(error); }
+  } catch (error) {
+    console.error("Failed to generate news:", error);
+  }
   return null;
 };

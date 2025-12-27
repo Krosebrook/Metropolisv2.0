@@ -5,7 +5,7 @@
 */
 import { BuildingConfig, BuildingType } from './types';
 
-export const GRID_SIZE = 15;
+export const GRID_SIZE = 25;
 export const MAX_LEVEL = 3;
 export const TICK_RATE_MS = 2500;
 export const INITIAL_MONEY = 3000; // Starting Gold
@@ -49,5 +49,17 @@ export const BUILDINGS: Record<BuildingType, BuildingConfig> = {
   },
   [BuildingType.Landmark]: {
     type: BuildingType.Landmark, cost: 6000, maintenance: 300, name: 'Great Castle', description: 'The Heart of the Kingdom', color: '#eab308', popGen: 20, incomeGen: 250, manaReq: 25, essenceReq: 20
+  },
+  [BuildingType.LumberMill]: {
+    type: BuildingType.LumberMill, cost: 450, maintenance: 25, name: 'Lumber Mill', description: 'Harvest magical timber', color: '#854d0e', popGen: 0, incomeGen: 65, manaReq: 2, essenceReq: 2
+  },
+  [BuildingType.Bakery]: {
+    type: BuildingType.Bakery, cost: 180, maintenance: 6, name: 'Bakery', description: 'Sweet treats for the soul', color: '#fdba74', popGen: 1, incomeGen: 20, manaReq: 1, essenceReq: 1, serviceRadius: 3
+  },
+  [BuildingType.Library]: {
+    type: BuildingType.Library, cost: 800, maintenance: 50, name: 'Great Library', description: 'Preserve ancient scrolls', color: '#1e40af', popGen: 0, incomeGen: 0, manaReq: 8, essenceReq: 2, serviceRadius: 7
+  },
+  [BuildingType.LuminaBloom]: {
+    type: BuildingType.LuminaBloom, cost: 250, maintenance: 10, name: 'Lumina Bloom', description: 'A flower that absorbs ambient mana', color: '#a78bfa', popGen: 3, incomeGen: 0, manaReq: 0, essenceReq: 3, serviceRadius: 4
   },
 };

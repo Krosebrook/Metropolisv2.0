@@ -7,6 +7,9 @@ import { Grid, CityStats, BuildingType, TileData } from '../types';
 import { BUILDINGS, GRID_SIZE } from '../constants';
 
 export class SimulationService {
+  /**
+   * Processes one logical time step of the kingdom simulation.
+   */
   static calculateTick(grid: Grid, stats: CityStats): { newStats: CityStats, newGrid: Grid } {
     let incomeTotal = 0;
     let maintenanceTotal = 0;
@@ -18,40 +21,32 @@ export class SimulationService {
     let totalHappiness = 0;
     let residentialCount = 0;
 
-    const guardMap = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(false));
-    const mageMap = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(false));
-    const wisdomMap = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(false));
-    const forestMap = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(false));
+    // Spatial coverage maps
+    const coverage = {
+      guards: Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(false)),
+      mages: Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(false)),
+      wisdom: Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(false)),
+      nature: Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(false)),
+      sweets: Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(false)), // Bakery boost
+    };
 
-    // Phase 1: Supplies and Magical Coverage
+    // Pre-pass: Calculate total utility supply and service coverage
     grid.forEach(row => row.forEach(tile => {
       const config = BUILDINGS[tile.buildingType];
+      if (!config) return;
+
       if (tile.buildingType === BuildingType.PowerPlant) manaSupply += 120 * tile.level;
       if (tile.buildingType === BuildingType.WaterTower) essenceSupply += 100 * tile.level;
       
       maintenanceTotal += config.maintenance * tile.level;
 
       if (config.serviceRadius) {
-        const r = config.serviceRadius + (tile.level - 1);
-        for (let dy = -r; dy <= r; dy++) {
-          for (let dx = -r; dx <= r; dx++) {
-            const ny = tile.y + dy;
-            const nx = tile.x + dx;
-            if (ny >= 0 && ny < GRID_SIZE && nx >= 0 && nx < GRID_SIZE) {
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              if (dist <= r) {
-                if (tile.buildingType === BuildingType.PoliceStation) guardMap[ny][nx] = true;
-                if (tile.buildingType === BuildingType.FireStation) mageMap[ny][nx] = true;
-                if (tile.buildingType === BuildingType.School) wisdomMap[ny][nx] = true;
-                if (tile.buildingType === BuildingType.Park) forestMap[ny][nx] = true;
-              }
-            }
-          }
-        }
+        const radius = config.serviceRadius + (tile.level - 1);
+        this.applyCoverage(coverage, tile.x, tile.y, radius, tile.buildingType);
       }
     }));
 
-    // Phase 2: Processing Tiles
+    // Main pass: Apply logic to each tile
     const newGrid = grid.map((row, y) => row.map((tile, x) => {
       if (tile.buildingType === BuildingType.None || tile.buildingType === BuildingType.Road) {
         return { ...tile, happiness: 100, hasMana: true, hasEssence: true };
@@ -61,41 +56,47 @@ export class SimulationService {
       const mReq = config.manaReq * tile.level;
       const eReq = config.essenceReq * tile.level;
 
-      const canMana = (manaUsed + mReq) <= manaSupply;
-      const canEssence = (essenceUsed + eReq) <= essenceSupply;
+      const hasMana = (manaUsed + mReq) <= manaSupply;
+      const hasEssence = (essenceUsed + eReq) <= essenceSupply;
 
-      if (canMana) manaUsed += mReq;
-      if (canEssence) essenceUsed += eReq;
+      if (hasMana) manaUsed += mReq;
+      if (hasEssence) essenceUsed += eReq;
 
-      let happiness = 80; // Baseline Kingdom Contentment
-      if (!canMana) happiness -= 35;
-      if (!canEssence) happiness -= 35;
+      // Happiness logic: Multi-factor weighted system
+      let happiness = 75; // Baseline
+      
+      if (!hasMana) happiness -= 40;
+      if (!hasEssence) happiness -= 40;
       
       if (tile.buildingType === BuildingType.Residential) {
         residentialCount++;
-        if (guardMap[y][x]) happiness += 12; else happiness -= 18;
-        if (mageMap[y][x]) happiness += 12; else happiness -= 12;
-        if (wisdomMap[y][x]) happiness += 15; else happiness -= 5;
-        if (forestMap[y][x]) happiness += 15;
         
-        // Mine pollution/noise
-        if (this.checkProximity(grid, x, y, BuildingType.Industrial, 3)) happiness -= 25;
+        // Services
+        happiness += coverage.guards[y][x] ? 15 : -20;
+        happiness += coverage.mages[y][x] ? 15 : -15;
+        happiness += coverage.wisdom[y][x] ? 20 : 0;
+        happiness += coverage.nature[y][x] ? 20 : 0;
+        happiness += coverage.sweets[y][x] ? 12 : 0; // Bakery bonus
+        
+        // Proximity penalties for industrial pollution (Mines & Lumber Mills)
+        if (this.checkIndustrialProximity(grid, x, y, 3)) happiness -= 30;
       }
 
       happiness = Math.max(0, Math.min(100, happiness));
       totalHappiness += happiness;
 
-      const efficiency = (canMana && canEssence) ? (happiness / 100) : 0.05;
-      incomeTotal += config.incomeGen * tile.level * efficiency;
-      popGrowth += config.popGen * tile.level * efficiency;
+      // Economic output is throttled by happiness and utility availability
+      const effectiveness = (hasMana && hasEssence) ? (0.2 + (happiness / 100) * 0.8) : 0.1;
+      incomeTotal += config.incomeGen * tile.level * effectiveness;
+      popGrowth += config.popGen * tile.level * effectiveness;
 
       return { 
         ...tile, 
-        hasMana: canMana, 
-        hasEssence: canEssence, 
-        hasGuards: guardMap[y][x],
-        hasMagicSafety: mageMap[y][x],
-        hasWisdom: wisdomMap[y][x],
+        hasMana, 
+        hasEssence, 
+        hasGuards: coverage.guards[y][x],
+        hasMagicSafety: coverage.mages[y][x],
+        hasWisdom: coverage.wisdom[y][x],
         happiness 
       };
     }));
@@ -121,13 +122,32 @@ export class SimulationService {
     };
   }
 
-  private static checkProximity(grid: Grid, x: number, y: number, type: BuildingType, radius: number): boolean {
+  private static applyCoverage(coverage: any, cx: number, cy: number, r: number, type: BuildingType) {
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        const nx = cx + dx;
+        const ny = cy + dy;
+        if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
+          if (Math.sqrt(dx * dx + dy * dy) <= r) {
+            if (type === BuildingType.PoliceStation) coverage.guards[ny][nx] = true;
+            if (type === BuildingType.FireStation) coverage.mages[ny][nx] = true;
+            if (type === BuildingType.School || type === BuildingType.Library) coverage.wisdom[ny][nx] = true;
+            if (type === BuildingType.Park || type === BuildingType.LuminaBloom) coverage.nature[ny][nx] = true;
+            if (type === BuildingType.Bakery) coverage.sweets[ny][nx] = true;
+          }
+        }
+      }
+    }
+  }
+
+  private static checkIndustrialProximity(grid: Grid, x: number, y: number, radius: number): boolean {
+    const industrialTypes = [BuildingType.Industrial, BuildingType.LumberMill];
     for (let dy = -radius; dy <= radius; dy++) {
       for (let dx = -radius; dx <= radius; dx++) {
         const nx = x + dx;
         const ny = y + dy;
-        if (ny >= 0 && ny < GRID_SIZE && nx >= 0 && nx < GRID_SIZE) {
-          if (grid[ny][nx].buildingType === type) return true;
+        if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
+          if (industrialTypes.includes(grid[ny][nx].buildingType)) return true;
         }
       }
     }

@@ -8,7 +8,7 @@ import { Canvas, useFrame, ThreeElements } from '@react-three/fiber';
 import { MapControls, Float, Outlines, OrthographicCamera, Stars, Sky } from '@react-three/drei';
 import * as THREE from 'three';
 import { Grid, BuildingType, TileData } from '../types';
-import { GRID_SIZE, BUILDINGS } from '../constants';
+import { BUILDINGS, GRID_SIZE } from '../constants';
 
 declare global {
   namespace React {
@@ -21,10 +21,12 @@ declare global {
 const WORLD_OFFSET = GRID_SIZE / 2 - 0.5;
 const gridToWorld = (x: number, y: number) => [x - WORLD_OFFSET, 0, y - WORLD_OFFSET] as [number, number, number];
 
-const boxGeo = new THREE.BoxGeometry(1, 1, 1);
-const coneGeo = new THREE.ConeGeometry(0.5, 1, 8);
-const cylinderGeo = new THREE.CylinderGeometry(0.4, 0.4, 1, 12);
-const octoGeo = new THREE.OctahedronGeometry(0.5);
+const GEOMETRY = {
+  box: new THREE.BoxGeometry(1, 1, 1),
+  cone: new THREE.ConeGeometry(0.5, 1, 8),
+  cylinder: new THREE.CylinderGeometry(0.4, 0.4, 1, 12),
+  octa: new THREE.OctahedronGeometry(0.5)
+};
 
 const Atmosphere = ({ time, weather }: { time: number, weather: string }) => {
   const isNight = time < 6 || time > 18;
@@ -33,69 +35,62 @@ const Atmosphere = ({ time, weather }: { time: number, weather: string }) => {
     return [Math.cos(angle) * 50, Math.sin(angle) * 50, 0] as [number, number, number];
   }, [time]);
 
+  // Brightened night light so players can see the ground
+  const lightColor = isNight ? "#818cf8" : weather === 'storm' ? "#94a3b8" : "#fffbeb";
+  const lightIntensity = isNight ? 0.25 : weather === 'storm' ? 0.4 : 1.6;
+
   return (
     <>
-      <Sky sunPosition={sunPos} turbidity={weather === 'storm' ? 20 : 0.5} rayleigh={weather === 'storm' ? 10 : 3} />
-      {isNight && <Stars radius={100} depth={50} count={5000} factor={6} saturation={1} fade speed={2} />}
-      <directionalLight 
-        position={sunPos} 
-        intensity={isNight ? 0.03 : weather === 'storm' ? 0.3 : 1.5} 
-        castShadow 
-        color={isNight ? "#4c1d95" : "#fffbeb"}
-      />
-      <ambientLight intensity={isNight ? 0.01 : 0.4} />
-      <fog attach="fog" args={["#0c0a09", 30, 60]} />
+      <Sky sunPosition={sunPos} turbidity={weather === 'storm' ? 20 : 0.2} rayleigh={weather === 'storm' ? 10 : 2} />
+      {isNight && <Stars radius={100} depth={50} count={5000} factor={6} saturation={1} fade speed={1.5} />}
+      <directionalLight position={sunPos} intensity={lightIntensity} castShadow color={lightColor} shadow-mapSize={[1024, 1024]} />
+      {/* Increased ambient light at night */}
+      <ambientLight intensity={isNight ? 0.15 : 0.45} />
+      {/* Pushed fog further back and lightened the color */}
+      <fog attach="fog" args={["#1c1917", 60, 110]} />
     </>
   );
 };
 
-const RangeIndicator = ({ x, y, radius }: { x: number, y: number, radius: number }) => {
-  const [wx, _, wz] = gridToWorld(x, y);
-  return (
-    <mesh position={[wx, -0.28, wz]} rotation={[-Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[radius - 0.05, radius, 64]} />
-      <meshBasicMaterial color="#a855f7" transparent opacity={0.6} depthTest={false} />
-    </mesh>
-  );
-};
-
 const UpgradeMagic = ({ color }: { color: string }) => {
+  const groupRef = useRef<THREE.Group>(null);
+  const lightRef = useRef<THREE.PointLight>(null);
+  const [life, setLife] = useState(1);
+  
   const particles = useMemo(() => {
-    return Array.from({ length: 15 }, () => ({
-      pos: new THREE.Vector3(
-        (Math.random() - 0.5) * 0.8,
-        Math.random() * 0.5,
-        (Math.random() - 0.5) * 0.8
-      ),
-      velocity: new THREE.Vector3(
-        (Math.random() - 0.5) * 0.02,
-        Math.random() * 0.05 + 0.02,
-        (Math.random() - 0.5) * 0.02
-      ),
-      scale: Math.random() * 0.1 + 0.05
+    return Array.from({ length: 18 }, () => ({
+      pos: new THREE.Vector3((Math.random() - 0.5) * 0.5, 0, (Math.random() - 0.5) * 0.5),
+      vel: new THREE.Vector3((Math.random() - 0.5) * 0.04, Math.random() * 0.1 + 0.05, (Math.random() - 0.5) * 0.04),
+      rot: Math.random() * Math.PI,
+      size: Math.random() * 0.1 + 0.05
     }));
   }, []);
 
-  const groupRef = useRef<THREE.Group>(null);
-  
-  useFrame(() => {
+  useFrame((_, delta) => {
+    if (life <= 0) return;
+    setLife(l => l - delta * 0.8);
     if (groupRef.current) {
       groupRef.current.children.forEach((child, i) => {
-        const p = particles[i];
-        child.position.add(p.velocity);
-        child.scale.multiplyScalar(0.96);
-        child.rotation.x += 0.1;
-        child.rotation.y += 0.1;
+        if (i > 0) {
+          const p = particles[i-1];
+          child.position.add(p.vel);
+          child.rotation.y += delta * 5;
+          child.scale.multiplyScalar(0.97);
+        }
       });
     }
+    if (lightRef.current) lightRef.current.intensity = life * 15;
   });
 
+  if (life <= 0) return null;
+
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} position={[0, 0.5, 0]}>
+      <pointLight ref={lightRef} color={color} distance={4} />
       {particles.map((p, i) => (
-        <mesh key={i} position={p.pos} scale={[p.scale, p.scale, p.scale]}>
+        <mesh key={i} position={p.pos.toArray()} rotation={[0, p.rot, 0]} scale={p.size}>
           <octahedronGeometry args={[1]} />
-          <meshBasicMaterial color={color} transparent opacity={0.8} />
+          <meshBasicMaterial color={color} transparent opacity={life} />
         </mesh>
       ))}
     </group>
@@ -105,83 +100,99 @@ const UpgradeMagic = ({ color }: { color: string }) => {
 const FairytaleBuilding = React.memo(({ tile, time }: { tile: TileData, time: number }) => {
   const isNight = time < 6 || time > 18;
   const config = BUILDINGS[tile.buildingType];
-  const lScale = 0.4 + (tile.level * 0.4);
+  const lScale = 0.5 + (tile.level * 0.35);
   
-  const [showUpgradeEffect, setShowUpgradeEffect] = useState(false);
-  const prevLevelRef = useRef(tile.level);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const levelRef = useRef(tile.level);
 
   useEffect(() => {
-    if (tile.level > prevLevelRef.current) {
-      setShowUpgradeEffect(true);
-      const timer = setTimeout(() => setShowUpgradeEffect(false), 2000);
-      prevLevelRef.current = tile.level;
-      return () => clearTimeout(timer);
+    if (tile.level > levelRef.current) {
+      setShowUpgrade(true);
+      const t = setTimeout(() => setShowUpgrade(false), 2000);
+      levelRef.current = tile.level;
+      return () => clearTimeout(t);
     }
-    prevLevelRef.current = tile.level;
+    levelRef.current = tile.level;
   }, [tile.level]);
 
   const hasIssue = !tile.hasMana || !tile.hasEssence;
   
   return (
     <group position={[0, -0.3, 0]}>
-      {showUpgradeEffect && <UpgradeMagic color="#d946ef" />}
+      {showUpgrade && <UpgradeMagic color="#d946ef" />}
       
       <group scale={[1, lScale, 1]}>
-        {/* Cottage Shape */}
+        {/* Conditional Rendering of Building Archetypes */}
         {tile.buildingType === BuildingType.Residential && (
           <group>
-            <mesh geometry={boxGeo} castShadow>
-              <meshStandardMaterial color={config.color} roughness={1} />
+            <mesh geometry={GEOMETRY.box} castShadow>
+              <meshStandardMaterial color={config.color} roughness={0.8} />
             </mesh>
             <mesh position={[0, 0.7, 0]} rotation={[0, Math.PI/4, 0]} castShadow>
                <coneGeometry args={[0.7, 0.6, 4]} />
-               <meshStandardMaterial color="#7f1d1d" />
+               <meshStandardMaterial color="#991b1b" />
             </mesh>
           </group>
         )}
 
-        {/* Tavern / Shop Shape */}
-        {tile.buildingType === BuildingType.Commercial && (
-          <group>
-            <mesh scale={[1.1, 0.8, 1.1]} geometry={boxGeo} castShadow>
-              <meshStandardMaterial color={config.color} />
-            </mesh>
-            <mesh position={[0, 0.5, 0]} scale={[1, 0.3, 1]} geometry={boxGeo}>
-               <meshStandardMaterial color="#451a03" />
-            </mesh>
-          </group>
-        )}
-
-        {/* Wizard Tower / Magic Source */}
         {tile.buildingType === BuildingType.PowerPlant && (
           <group>
-            <mesh geometry={cylinderGeo} castShadow>
-               <meshStandardMaterial color="#1e1b4b" metalness={0.8} />
+            <mesh geometry={GEOMETRY.cylinder} castShadow>
+               <meshStandardMaterial color="#4c1d95" metalness={0.6} roughness={0.2} />
             </mesh>
-            <mesh position={[0, 0.7, 0]} geometry={coneGeo} castShadow>
-               <meshStandardMaterial color="#4c1d95" />
-            </mesh>
-            <mesh position={[0, 1.3, 0]} rotation={[time * 0.5, time, 0]}>
-               <octahedronGeometry args={[0.2]} />
-               <meshStandardMaterial color="#d946ef" emissive="#d946ef" emissiveIntensity={2} />
+            <mesh position={[0, 1.2, 0]} rotation={[time, time*1.5, 0]}>
+               <octahedronGeometry args={[0.25]} />
+               <meshStandardMaterial color="#d946ef" emissive="#d946ef" emissiveIntensity={3} />
             </mesh>
           </group>
         )}
 
-        {/* Default / Castle / Other */}
-        {!([BuildingType.Residential, BuildingType.Commercial, BuildingType.PowerPlant].includes(tile.buildingType)) && (
-          <mesh geometry={tile.buildingType === BuildingType.Landmark ? cylinderGeo : boxGeo} castShadow>
+        {(tile.buildingType === BuildingType.Commercial || tile.buildingType === BuildingType.Bakery) && (
+          <group>
+            <mesh scale={[1.1, 0.7, 1.1]} geometry={GEOMETRY.box} castShadow>
+              <meshStandardMaterial color={config.color} />
+            </mesh>
+            <mesh position={[0, 0.45, 0]} scale={[1.2, 0.15, 1.2]} geometry={GEOMETRY.box}>
+              <meshStandardMaterial color="#451a03" />
+            </mesh>
+          </group>
+        )}
+
+        {(tile.buildingType === BuildingType.Industrial || tile.buildingType === BuildingType.LumberMill) && (
+          <group>
+            <mesh scale={[0.8, 1, 0.8]} geometry={GEOMETRY.box} castShadow>
+              <meshStandardMaterial color={config.color} roughness={1} metalness={0.4} />
+            </mesh>
+            <mesh position={[0, 0.6, 0]} scale={[0.2, 0.6, 0.2]} geometry={GEOMETRY.cylinder}>
+              <meshStandardMaterial color="#334155" />
+            </mesh>
+          </group>
+        )}
+
+        {([BuildingType.Park, BuildingType.LuminaBloom].includes(tile.buildingType)) && (
+          <group>
+            <mesh position={[0, 0, 0]} scale={[0.4, 0.8, 0.4]} geometry={GEOMETRY.cylinder} castShadow>
+              <meshStandardMaterial color={config.color} roughness={0.5} />
+            </mesh>
+            <mesh position={[0, 0.5, 0]} rotation={[0, time, 0]} geometry={GEOMETRY.octa} scale={0.3}>
+              <meshStandardMaterial color="#bef264" emissive="#bef264" emissiveIntensity={0.5} />
+            </mesh>
+          </group>
+        )}
+
+        {!([BuildingType.Residential, BuildingType.PowerPlant, BuildingType.Commercial, BuildingType.Bakery, BuildingType.Industrial, BuildingType.LumberMill, BuildingType.Park, BuildingType.LuminaBloom].includes(tile.buildingType)) && (
+          <mesh geometry={GEOMETRY.box} castShadow>
             <meshStandardMaterial 
               color={config.color} 
               emissive={isNight && tile.hasMana ? config.color : "#000"} 
-              emissiveIntensity={isNight && tile.hasMana ? 0.3 : 0}
+              emissiveIntensity={isNight ? 0.4 : 0}
             />
           </mesh>
         )}
 
         {hasIssue && (
-          <Float speed={3} rotationIntensity={0.5} floatIntensity={1}>
-            <mesh position={[0, 1.5 / lScale, 0]} scale={[0.15, 0.15, 0.15]}>
+          <Float speed={4} rotationIntensity={0.5} floatIntensity={1.5}>
+            <mesh position={[0, 1.8 / lScale, 0]} scale={0.15}>
               <sphereGeometry />
               <meshBasicMaterial color="#ef4444" />
             </mesh>
@@ -198,15 +209,18 @@ const IsoMap = ({ grid, onTileClick, hoveredTool, time, weather }: any) => {
 
   return (
     <div className="absolute inset-0 touch-none">
-      <Canvas shadows dpr={[1, 2]}>
-        <OrthographicCamera makeDefault zoom={45} position={[50, 50, 50]} />
-        <MapControls enableRotate enableZoom maxPolarAngle={Math.PI / 2.5} />
+      <Canvas shadows dpr={[1, 2]} gl={{ antialias: true, stencil: false }}>
+        {/* Camera adjusted for larger grid */}
+        <OrthographicCamera makeDefault zoom={40} position={[60, 60, 60]} />
+        <MapControls enableRotate={true} enableZoom={true} dampingFactor={0.1} />
         
         <Atmosphere time={time} weather={weather} />
         
         <group>
           {grid.map((row: TileData[], y: number) => row.map((tile: TileData, x: number) => {
             const [wx, _, wz] = gridToWorld(x, y);
+            const isRoad = tile.buildingType === BuildingType.Road;
+            
             return (
               <group key={`${x}-${y}`} position={[wx, 0, wz]}>
                 <mesh 
@@ -215,11 +229,17 @@ const IsoMap = ({ grid, onTileClick, hoveredTool, time, weather }: any) => {
                   onPointerEnter={() => setHoveredTile({x, y})}
                   onPointerDown={(e) => { e.stopPropagation(); onTileClick(x, y); }}
                 >
-                  <boxGeometry args={[1, 0.5, 1]} />
-                  <meshStandardMaterial color={tile.buildingType === BuildingType.Road ? '#1c1917' : '#292524'} roughness={1} />
+                  <boxGeometry args={[1, 0.45, 1]} />
+                  <meshStandardMaterial 
+                    // Lightened ground colors
+                    color={isRoad ? '#262626' : '#44403c'} 
+                    roughness={1} 
+                  />
+                  {/* Subtle edge lines for ground tiles */}
+                  <Outlines thickness={0.01} color="#57534e" />
                 </mesh>
                 
-                {tile.buildingType !== BuildingType.None && tile.buildingType !== BuildingType.Road && (
+                {tile.buildingType !== BuildingType.None && !isRoad && (
                   <FairytaleBuilding tile={tile} time={time} />
                 )}
               </group>
@@ -227,16 +247,20 @@ const IsoMap = ({ grid, onTileClick, hoveredTool, time, weather }: any) => {
           }))}
 
           {hoveredTile && (
-            <>
-              <mesh position={[gridToWorld(hoveredTile.x, hoveredTile.y)[0], -0.29, gridToWorld(hoveredTile.x, hoveredTile.y)[2]]} rotation={[-Math.PI/2, 0, 0]}>
+            <group position={[gridToWorld(hoveredTile.x, hoveredTile.y)[0], -0.3, gridToWorld(hoveredTile.x, hoveredTile.y)[2]]}>
+              <mesh rotation={[-Math.PI/2, 0, 0]}>
                 <planeGeometry args={[1,1]} />
-                <meshBasicMaterial color="gold" transparent opacity={0.2} depthTest={false} />
-                <Outlines thickness={0.05} color="gold" />
+                {/* Brighter highlighter for placement */}
+                <meshBasicMaterial color="#fcd34d" transparent opacity={0.4} depthWrite={false} />
+                <Outlines thickness={0.05} color="#fbbf24" />
               </mesh>
               {toolConfig?.serviceRadius && (
-                <RangeIndicator x={hoveredTile.x} y={hoveredTile.y} radius={toolConfig.serviceRadius} />
+                <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.01, 0]}>
+                  <ringGeometry args={[toolConfig.serviceRadius - 0.05, toolConfig.serviceRadius, 64]} />
+                  <meshBasicMaterial color="#d946ef" transparent opacity={0.6} />
+                </mesh>
               )}
-            </>
+            </group>
           )}
         </group>
       </Canvas>

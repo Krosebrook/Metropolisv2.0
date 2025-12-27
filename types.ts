@@ -3,6 +3,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
+
 export enum BuildingType {
   None = 'None',
   Road = 'Cobblestone',
@@ -18,6 +19,11 @@ export enum BuildingType {
   PoliceStation = 'GuardPost',
   FireStation = 'MageSanctum',
   School = 'AlchemyAcademy',
+  // New Buildings
+  LumberMill = 'LumberMill',
+  Bakery = 'Bakery',
+  Library = 'GreatLibrary',
+  LuminaBloom = 'LuminaBloom',
 }
 
 export interface BuildingConfig {
@@ -29,8 +35,8 @@ export interface BuildingConfig {
   color: string;
   popGen: number;
   incomeGen: number;
-  manaReq: number;   // Replaced powerReq
-  essenceReq: number; // Replaced waterReq
+  manaReq: number;   
+  essenceReq: number; 
   serviceRadius?: number;
   isUtility?: boolean;
 }
@@ -40,19 +46,20 @@ export interface TileData {
   y: number;
   buildingType: BuildingType;
   level: number;
-  hasMana: boolean;   // Replaced hasPower
-  hasEssence: boolean; // Replaced hasWater
-  hasGuards: boolean;  // Replaced hasPolice
-  hasMagicSafety: boolean; // Replaced hasFire
-  hasWisdom: boolean;  // Replaced hasSchool
+  hasMana: boolean;   
+  hasEssence: boolean; 
+  hasGuards: boolean;  
+  hasMagicSafety: boolean; 
+  hasWisdom: boolean;  
   happiness: number; 
+  lastUpgraded?: number;
 }
 
 export type Grid = TileData[][];
 
 export interface CityStats {
-  money: number; // Gold
-  population: number; // Subjects
+  money: number; 
+  population: number; 
   day: number;
   happiness: number;
   manaSupply: number;
@@ -63,9 +70,11 @@ export interface CityStats {
   incomeTotal: number;
   weather: 'clear' | 'rain' | 'storm';
   time: number;
+  taxRate: number; // New: To allow fiscal management refactor
 }
 
 export interface AIGoal {
+  id: string;
   description: string;
   targetType: 'population' | 'money' | 'building_count' | 'happiness';
   targetValue: number;
@@ -78,4 +87,5 @@ export interface NewsItem {
   id: string;
   text: string;
   type: 'positive' | 'negative' | 'neutral' | 'urgent';
+  timestamp: number;
 }
