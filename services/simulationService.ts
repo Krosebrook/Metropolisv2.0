@@ -28,6 +28,8 @@ export class SimulationService {
       wisdom: Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(false)),
       nature: Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(false)),
       sweets: Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(false)), // Bakery boost
+      prosperity: Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(false)), // Market Square boost
+      cosmic: Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(false)), // Observatory boost
     };
 
     // Pre-pass: Calculate total utility supply and service coverage
@@ -74,11 +76,20 @@ export class SimulationService {
         // Services
         happiness += coverage.guards[y][x] ? 15 : -20;
         happiness += coverage.mages[y][x] ? 15 : -15;
-        happiness += coverage.wisdom[y][x] ? 20 : 0;
+        
+        // Magic Academy provides better wisdom coverage than a regular school
+        if (coverage.wisdom[y][x]) {
+          const isGrandAcademy = this.checkNearbyBuilding(grid, x, y, 8, BuildingType.MagicAcademy);
+          happiness += isGrandAcademy ? 25 : 20;
+        }
+
         happiness += coverage.nature[y][x] ? 20 : 0;
-        happiness += coverage.sweets[y][x] ? 12 : 0; // Bakery bonus
+        happiness += coverage.sweets[y][x] ? 12 : 0; 
+        happiness += coverage.prosperity[y][x] ? 15 : 0; // Market Square unique effect
+        happiness += coverage.cosmic[y][x] ? 10 : 0; // Observatory unique effect
         
         // Proximity penalties for industrial pollution (Mines & Lumber Mills)
+        // Note: Windmills are clean energy and don't pollute!
         if (this.checkIndustrialProximity(grid, x, y, 3)) happiness -= 30;
       }
 
@@ -134,14 +145,30 @@ export class SimulationService {
             if (type === BuildingType.School || type === BuildingType.Library || type === BuildingType.MagicAcademy) coverage.wisdom[ny][nx] = true;
             if (type === BuildingType.Park || type === BuildingType.LuminaBloom) coverage.nature[ny][nx] = true;
             if (type === BuildingType.Bakery) coverage.sweets[ny][nx] = true;
+            if (type === BuildingType.MarketSquare) coverage.prosperity[ny][nx] = true;
+            if (type === BuildingType.GrandObservatory) coverage.cosmic[ny][nx] = true;
           }
         }
       }
     }
   }
 
+  private static checkNearbyBuilding(grid: Grid, x: number, y: number, radius: number, type: BuildingType): boolean {
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
+          if (grid[ny][nx].buildingType === type) return true;
+        }
+      }
+    }
+    return false;
+  }
+
   private static checkIndustrialProximity(grid: Grid, x: number, y: number, radius: number): boolean {
-    const industrialTypes = [BuildingType.Industrial, BuildingType.LumberMill, BuildingType.Windmill];
+    // Windmill is removed from industrial polluters list
+    const industrialTypes = [BuildingType.Industrial, BuildingType.LumberMill];
     for (let dy = -radius; dy <= radius; dy++) {
       for (let dx = -radius; dx <= radius; dx++) {
         const nx = x + dx;

@@ -22,6 +22,96 @@ const GEOMETRY = {
   torus: new THREE.TorusGeometry(0.3, 0.05, 12, 24)
 };
 
+/**
+ * Magical wisps for the Enchanted Forest
+ */
+const ForestWisps = ({ children }: { children?: React.ReactNode }) => {
+  const count = 6;
+  const particles = useMemo(() => 
+    Array.from({ length: count }).map((_, i) => ({
+      orbitRadius: 0.2 + Math.random() * 0.4,
+      orbitSpeed: 0.5 + Math.random() * 1.5,
+      yOffset: Math.random() * 0.5,
+      phase: Math.random() * Math.PI * 2,
+      color: ['#4ade80', '#22d3ee', '#f472b6'][i % 3]
+    })), [count]);
+
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    const time = state.clock.getElapsedTime();
+    groupRef.current.children.forEach((child, i) => {
+      // Only process the wisps, not any injected children
+      if (i >= count) return;
+      const p = particles[i];
+      const t = time * p.orbitSpeed + p.phase;
+      
+      child.position.x = Math.cos(t) * p.orbitRadius;
+      child.position.z = Math.sin(t) * p.orbitRadius;
+      child.position.y = p.yOffset + Math.sin(t * 0.5) * 0.2;
+      
+      if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
+        child.material.opacity = (Math.sin(t) * 0.5 + 0.5) * 0.8;
+      }
+    });
+  });
+
+  return (
+    <group ref={groupRef} position={[0, 0.3, 0]}>
+      {particles.map((p, i) => (
+        <mesh key={i} geometry={GEOMETRY.sphere} scale={0.04}>
+          <meshStandardMaterial color={p.color} emissive={p.color} emissiveIntensity={3} transparent />
+        </mesh>
+      ))}
+      {children}
+    </group>
+  );
+};
+
+/**
+ * Animated smoke particles that rise and fade
+ */
+const SmokeEmitter = ({ position, children }: { position?: [number, number, number], children?: React.ReactNode }) => {
+  const count = 8;
+  const particles = useMemo(() => 
+    Array.from({ length: count }).map((_, i) => ({
+      offset: Math.random() * Math.PI * 2,
+      speed: 0.15 + Math.random() * 0.1,
+      startTime: i * (1.0 / count)
+    })), [count]);
+
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    const time = state.clock.getElapsedTime();
+    groupRef.current.children.forEach((child, i) => {
+      if (i >= count) return;
+      const p = particles[i];
+      const cycle = (p.startTime + time * 0.4) % 1.0;
+      child.position.y = cycle * 1.5;
+      child.position.x = Math.sin(time + p.offset) * 0.15 * cycle;
+      child.position.z = Math.cos(time + p.offset) * 0.15 * cycle;
+      child.scale.setScalar(0.1 + cycle * 0.2);
+      if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
+        child.material.opacity = (1.0 - cycle) * 0.6;
+      }
+    });
+  });
+
+  return (
+    <group position={position} ref={groupRef}>
+      {particles.map((_, i) => (
+        <mesh key={i} geometry={GEOMETRY.sphere}>
+          <meshStandardMaterial color="#cbd5e1" transparent opacity={0} depthWrite={false} />
+        </mesh>
+      ))}
+      {children}
+    </group>
+  );
+};
+
 const MagicBurst = ({ type, level }: { type: BuildingType; level: number }) => {
   const count = 12 + level * 4;
   const particles = useMemo(() => {
@@ -99,6 +189,232 @@ const WindmillSails = () => {
   );
 };
 
+// Data-driven Model Schemas
+interface BuildingPart {
+  geometry?: keyof typeof GEOMETRY | [string, any[]];
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: [number, number, number] | number;
+  color?: string;
+  useConfigColor?: boolean;
+  emissive?: string;
+  emissiveIntensity?: number;
+  opacity?: number;
+  metalness?: number;
+  transparent?: boolean;
+  component?: React.ComponentType<any>;
+  componentProps?: any;
+  children?: BuildingPart[];
+}
+
+const ROOF_COLOR = "#991b1b";
+
+// Fix: Explicitly type BUILDING_SCHEMAS and cast complex array structures to ensure valid BuildingPart objects
+const BUILDING_SCHEMAS: Record<string, BuildingPart[] | BuildingPart[][]> = {
+  [BuildingType.Residential]: [
+    // Variant 0: Classic Square
+    [
+      { geometry: ['boxGeometry', [1, 1, 1]] as [string, any[]], scale: [0.85, 0.7, 0.85], position: [0, 0.15, 0], useConfigColor: true },
+      { geometry: ['coneGeometry', [0.7, 0.6, 4]] as [string, any[]], position: [0, 0.6, 0], rotation: [0, Math.PI / 4, 0], color: ROOF_COLOR }
+    ],
+    // Variant 1: Twin Peaks
+    [
+      { geometry: 'box' as const, scale: [0.4, 0.6, 0.7], position: [-0.2, 0.1, 0], useConfigColor: true },
+      { geometry: 'box' as const, scale: [0.4, 0.6, 0.7], position: [0.2, 0.1, 0], useConfigColor: true },
+      { geometry: ['coneGeometry', [0.4, 0.4, 4]] as [string, any[]], position: [-0.2, 0.5, 0], rotation: [0, Math.PI / 4, 0], color: ROOF_COLOR },
+      { geometry: ['coneGeometry', [0.4, 0.4, 4]] as [string, any[]], position: [0.2, 0.5, 0], rotation: [0, Math.PI / 4, 0], color: ROOF_COLOR }
+    ],
+    // Variant 2: Tall Cottage
+    [
+      { geometry: 'box' as const, scale: [0.6, 1.0, 0.6], position: [0, 0.3, 0], useConfigColor: true },
+      { geometry: ['coneGeometry', [0.6, 0.8, 4]] as [string, any[]], position: [0, 1.0, 0], rotation: [0, Math.PI / 4, 0], color: ROOF_COLOR },
+      { geometry: 'box' as const, scale: [0.15, 0.5, 0.15], position: [0.2, 0.8, 0.2], color: "#451a03" }
+    ],
+    // Variant 3: Round Hut
+    [
+      { geometry: ['cylinderGeometry', [0.4, 0.4, 1, 12]] as [string, any[]], scale: [0.8, 0.7, 0.8], position: [0, 0.15, 0], useConfigColor: true },
+      { geometry: ['coneGeometry', [0.9, 0.7, 16]] as [string, any[]], position: [0, 0.6, 0], color: "#422006" }
+    ],
+    // Variant 4: L-Shaped Manor
+    [
+      { geometry: 'box' as const, scale: [0.8, 0.6, 0.4], position: [0, 0.1, -0.1], useConfigColor: true },
+      { geometry: 'box' as const, scale: [0.4, 0.6, 0.6], position: [-0.2, 0.1, 0.2], useConfigColor: true },
+      { geometry: ['coneGeometry', [0.6, 0.4, 4]] as [string, any[]], position: [0, 0.5, -0.1], rotation: [0, Math.PI / 4, 0], color: ROOF_COLOR },
+      { geometry: ['coneGeometry', [0.4, 0.4, 4]] as [string, any[]], position: [-0.2, 0.5, 0.2], rotation: [0, Math.PI / 4, 0], color: ROOF_COLOR }
+    ]
+  ],
+  [BuildingType.Park]: [
+    { component: ForestWisps },
+    ...[[-0.2, 0.2], [0.3, -0.1], [-0.2, -0.3]].map(p => ({
+      position: [p[0], 0, p[1]] as [number, number, number],
+      children: [
+        { geometry: ['cylinderGeometry', [0.05, 0.08, 0.3, 6]] as [string, any[]], position: [0, 0.1, 0], color: "#3f2305" },
+        { geometry: ['coneGeometry', [0.25, 0.5, 5]] as [string, any[]], position: [0, 0.4, 0], color: "#14532d" }
+      ] as BuildingPart[]
+    } as BuildingPart))
+  ],
+  [BuildingType.Windmill]: [
+    { geometry: ['cylinderGeometry', [0.4, 0.5, 0.8, 8]] as [string, any[]], position: [0, 0.4, 0], color: "#78350f" },
+    { geometry: ['coneGeometry', [0.55, 0.4, 8]] as [string, any[]], position: [0, 0.9, 0], color: "#b45309" },
+    { component: WindmillSails, position: [0, 0.7, 0.4] }
+  ],
+  [BuildingType.MagicAcademy]: [
+    { geometry: 'cylinder' as const, scale: [0.7, 1.2, 0.7], position: [0, 0.2, 0], color: "#4c1d95" },
+    { 
+      component: Float, 
+      componentProps: { speed: 3, floatIntensity: 1 }, 
+      children: [
+        { geometry: 'octa' as const, scale: 0.6, position: [0, 1.5, 0], color: "#818cf8", emissive: "#818cf8", emissiveIntensity: 3 }
+      ]
+    }
+  ],
+  [BuildingType.PowerPlant]: [
+    { geometry: 'cylinder' as const, scale: [0.5, 1.8, 0.5], position: [0, 0.4, 0], color: "#7c3aed" },
+    { geometry: ['cylinderGeometry', [0.1, 0.1, 0.8, 8]] as [string, any[]], position: [0.2, 0.8, 0.2], color: "#1e1b4b" },
+    { component: SmokeEmitter, position: [0.2, 1.3, 0.2] },
+    { 
+      component: Float, 
+      componentProps: { speed: 5, floatIntensity: 1.5 },
+      children: [
+        { geometry: 'sphere' as const, scale: 0.15, position: [0, 2.2, 0], color: "#f472b6", emissive: "#f472b6", emissiveIntensity: 4 }
+      ]
+    }
+  ],
+  [BuildingType.Landmark]: [
+    { 
+      position: [0, 0, 0], scale: 1.4, children: [
+        { geometry: 'box' as const, scale: [1.4, 0.8, 1.4], position: [0, 0.2, 0], useConfigColor: true },
+        { geometry: 'cone' as const, scale: [1, 0.8, 1], position: [0, 1, 0], rotation: [0, Math.PI/4, 0], color: "#991b1b" }
+      ]
+    }
+  ],
+  [BuildingType.GrandObservatory]: [
+    { geometry: ['cylinderGeometry', [0.9, 0.4, 0.9]] as [string, any[]], position: [0, 0, 0], color: "#1e1b4b" },
+    { geometry: ['sphereGeometry', [0.6, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]] as [string, any[]], position: [0, 0.5, 0], color: "#312e81" },
+    { geometry: ['cylinderGeometry', [0.1, 0.15, 1.2, 12]] as [string, any[]], position: [0, 0.7, 0.2], rotation: [-Math.PI / 4, 0, 0], color: "#4c1d95", metalness: 0.8 },
+    { 
+      component: Float, 
+      componentProps: { speed: 2, floatIntensity: 0.5 },
+      children: [
+        { geometry: 'sphere' as const, scale: 0.05, position: [0.3, 1.2, 0.5], color: "#fbbf24", emissive: "#fbbf24", emissiveIntensity: 2 }
+      ]
+    }
+  ],
+  [BuildingType.MarketSquare]: [
+    // Variant 0: Classic Fountain Square
+    [
+      { geometry: 'box' as const, scale: [1.2, 0.1, 1.2], position: [0, -0.05, 0], color: "#94a3b8" },
+      ...[[-0.35, -0.35], [0.35, -0.35], [-0.35, 0.35], [0.35, 0.35]].map((p, i) => ({
+        position: [p[0], 0.2, p[1]] as [number, number, number],
+        children: [
+          { geometry: 'box' as const, scale: [0.3, 0.3, 0.3], color: i % 2 === 0 ? "#ef4444" : "#3b82f6" },
+          { geometry: ['coneGeometry', [0.25, 0.15, 4]] as [string, any[]], position: [0, 0.2, 0], rotation: [0, Math.PI / 4, 0], color: "#fffbeb" }
+        ] as BuildingPart[]
+      } as BuildingPart)),
+      { geometry: 'cylinder' as const, scale: [0.2, 0.3, 0.2], position: [0, 0.15, 0], color: "#64748b" },
+      { geometry: 'sphere' as const, scale: 0.08, position: [0, 0.35, 0], color: "#60a5fa", emissive: "#60a5fa", emissiveIntensity: 2 }
+    ],
+    // Variant 1: Festival Ground
+    [
+      { geometry: 'box' as const, scale: [1.2, 0.1, 1.2], position: [0, -0.05, 0], color: "#94a3b8" },
+      { geometry: 'cylinder' as const, scale: [0.1, 0.8, 0.1], position: [0, 0.3, 0], color: "#78350f" },
+      { geometry: 'sphere' as const, scale: 0.05, position: [0, 0.8, 0], color: "#fbbf24", emissive: "#fbbf24", emissiveIntensity: 2 },
+      ...[0, 1, 2, 3].map(i => ({
+        rotation: [0, (i * Math.PI) / 2, 0] as [number, number, number],
+        children: [{ geometry: ['boxGeometry', [0.02, 0.6, 0.1]] as [string, any[]], position: [0.4, 0.3, 0], color: i % 2 === 0 ? "#8b5cf6" : "#f43f5e" }] as BuildingPart[]
+      } as BuildingPart)),
+      { geometry: 'box' as const, scale: 0.2, position: [0.3, 0.1, 0.3], color: "#d97706" }
+    ],
+    // Variant 2: Densely Packed
+    [
+      { geometry: 'box' as const, scale: [1.2, 0.1, 1.2], position: [0, -0.05, 0], color: "#94a3b8" },
+      { geometry: ['boxGeometry', [0.4, 0.4, 0.3]] as [string, any[]], position: [-0.3, 0.15, 0.1], rotation: [0, 0.2, 0], color: "#ef4444" },
+      { geometry: ['boxGeometry', [0.4, 0.4, 0.3]] as [string, any[]], position: [0.3, 0.15, -0.2], rotation: [0, -0.4, 0], color: "#3b82f6" },
+      ...[[-0.2, -0.35], [0.1, 0.35], [0.35, 0.3]].map(p => ({
+        geometry: 'box' as const, scale: 0.15, position: [p[0], 0.05, p[1]] as [number, number, number], color: "#451a03"
+      } as BuildingPart)),
+      { geometry: 'cylinder' as const, scale: [0.15, 0.2, 0.15], position: [0, 0.1, -0.1], color: "#1e3a8a" }
+    ],
+    // Variant 3: Mystic Bazaar
+    [
+      { geometry: 'box' as const, scale: [1.2, 0.1, 1.2], position: [0, -0.05, 0], color: "#94a3b8" },
+      { geometry: 'box' as const, scale: [0.8, 0.05, 0.8], position: [0, 0, 0], color: "#4c1d95", emissive: "#4c1d95", emissiveIntensity: 0.5 },
+      { 
+        component: Float, 
+        componentProps: { speed: 5, floatIntensity: 0.5 },
+        children: [{ geometry: 'octa' as const, scale: 0.25, position: [0, 0.5, 0], color: "#d946ef", emissive: "#d946ef", emissiveIntensity: 2 }]
+      },
+      ...[[-0.4, 0], [0.4, 0], [0, -0.4], [0, 0.4]].map(p => ({
+        geometry: 'cone' as const, scale: [0.15, 0.3, 4], position: [p[0], 0.15, p[1]] as [number, number, number], color: "#fbbf24", metalness: 0.8
+      } as BuildingPart))
+    ]
+  ]
+};
+
+// Fix: Use React.FC to properly type the component and handle 'key' prop in JSX
+const PartRenderer: React.FC<{ part: BuildingPart; config: any }> = ({ part, config }) => {
+  const geometry = useMemo(() => {
+    if (!part.geometry) return null;
+    if (Array.isArray(part.geometry)) {
+      const [type, args] = part.geometry;
+      // We return the raw tag name and args for the mesh to consume
+      return { type, args };
+    }
+    return GEOMETRY[part.geometry as keyof typeof GEOMETRY];
+  }, [part.geometry]);
+
+  const color = part.useConfigColor ? config.color : part.color;
+
+  const content = (
+    <>
+      {part.children?.map((child, i) => <PartRenderer key={i} part={child} config={config} />)}
+    </>
+  );
+
+  if (part.component) {
+    const Component = part.component;
+    return (
+      <group position={part.position} rotation={part.rotation} scale={part.scale}>
+        <Component {...(part.componentProps || {})}>
+          {content}
+        </Component>
+      </group>
+    );
+  }
+
+  if (geometry) {
+    return (
+      <mesh 
+        geometry={geometry instanceof THREE.BufferGeometry ? geometry : undefined} 
+        position={part.position} 
+        rotation={part.rotation} 
+        scale={part.scale}
+        castShadow
+      >
+        {!(geometry instanceof THREE.BufferGeometry) && (
+          // @ts-ignore - dynamic tag
+          <geometry.type args={geometry.args} />
+        )}
+        <meshStandardMaterial 
+          color={color} 
+          emissive={part.emissive} 
+          emissiveIntensity={part.emissiveIntensity} 
+          transparent={part.transparent}
+          opacity={part.opacity}
+          metalness={part.metalness}
+        />
+        {content}
+      </mesh>
+    );
+  }
+
+  return (
+    <group position={part.position} rotation={part.rotation} scale={part.scale}>
+      {content}
+    </group>
+  );
+};
+
 const createProceduralTexture = (type: 'grass' | 'road' | 'side', seed: number) => {
   const canvas = document.createElement('canvas');
   canvas.width = 128; canvas.height = 128;
@@ -122,7 +438,7 @@ const createProceduralTexture = (type: 'grass' | 'road' | 'side', seed: number) 
     for(let i = 0; i < 128; i += 32) {
       for(let j = 0; j < 128; j += 32) {
         ctx.strokeRect(i + 2, j + 2, 28, 28);
-        ctx.fillStyle = '#1e293b'; ctx.globalAlpha = 0.1; ctx.fillRect(i + 4, j + 4, 24, 24);
+        ctx.fillStyle = '#1e292b'; ctx.globalAlpha = 0.1; ctx.fillRect(i + 4, j + 4, 24, 24);
       }
     }
   } else if (type === 'side') {
@@ -140,10 +456,11 @@ const createProceduralTexture = (type: 'grass' | 'road' | 'side', seed: number) 
   return texture;
 };
 
-const FairytaleBuilding = React.memo(({ tile }: { tile: TileData }) => {
+// Fix: typed FairytaleBuilding as React.FC to ensure proper prop recognition including 'key'
+const FairytaleBuilding: React.FC<{ tile: TileData }> = React.memo(({ tile }) => {
   const config = BUILDINGS[tile.buildingType];
   const lScale = 0.7 + (tile.level * 0.3);
-  const variant = tile.variant || 0;
+  const variantIndex = tile.variant || 0;
   const [showUpgrade, setShowUpgrade] = useState(false);
   const prevLevel = useRef(tile.level);
 
@@ -157,79 +474,23 @@ const FairytaleBuilding = React.memo(({ tile }: { tile: TileData }) => {
     prevLevel.current = tile.level;
   }, [tile.level]);
 
-  const renderModel = () => {
-    switch (tile.buildingType) {
-      case BuildingType.Residential:
-        return (
-          <group>
-            <mesh geometry={GEOMETRY.box} scale={[0.85, 0.7, 0.85]} position={[0, 0.15, 0]} castShadow>
-              <meshStandardMaterial color={config.color} />
-            </mesh>
-            <mesh position={[0, 0.6, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
-              <coneGeometry args={[0.7, 0.6, 4]} />
-              <meshStandardMaterial color="#991b1b" />
-            </mesh>
-          </group>
-        );
-      case BuildingType.Windmill:
-        return (
-          <group>
-            <mesh position={[0, 0.4, 0]} castShadow>
-              <cylinderGeometry args={[0.4, 0.5, 0.8, 8]} />
-              <meshStandardMaterial color="#78350f" />
-            </mesh>
-            <mesh position={[0, 0.9, 0]} castShadow>
-              <coneGeometry args={[0.55, 0.4, 8]} />
-              <meshStandardMaterial color="#b45309" />
-            </mesh>
-            <group position={[0, 0.7, 0.4]}><WindmillSails /></group>
-          </group>
-        );
-      case BuildingType.MagicAcademy:
-        return (
-          <group>
-            <mesh geometry={GEOMETRY.cylinder} scale={[0.7, 1.2, 0.7]} position={[0, 0.2, 0]} castShadow>
-              <meshStandardMaterial color="#4c1d95" />
-            </mesh>
-            <Float speed={3} floatIntensity={1}>
-              <mesh geometry={GEOMETRY.octa} scale={0.6} position={[0, 1.5, 0]}>
-                <meshStandardMaterial color="#818cf8" emissive="#818cf8" emissiveIntensity={3} />
-              </mesh>
-            </Float>
-          </group>
-        );
-      case BuildingType.PowerPlant:
-        return (
-          <group>
-            <mesh geometry={GEOMETRY.cylinder} scale={[0.5, 1.8, 0.5]} position={[0, 0.4, 0]} castShadow>
-              <meshStandardMaterial color="#7c3aed" />
-            </mesh>
-            <Float speed={5} floatIntensity={1.5}>
-              <mesh position={[0, 2.2, 0]} geometry={GEOMETRY.sphere} scale={0.15}>
-                <meshStandardMaterial color="#f472b6" emissive="#f472b6" emissiveIntensity={4} />
-              </mesh>
-            </Float>
-          </group>
-        );
-      case BuildingType.Landmark:
-        return (
-          <group scale={1.4}>
-            <mesh geometry={GEOMETRY.box} scale={[1.4, 0.8, 1.4]} position={[0, 0.2, 0]} castShadow>
-              <meshStandardMaterial color="#f59e0b" />
-            </mesh>
-            <mesh position={[0, 1, 0]} geometry={GEOMETRY.cone} scale={[1, 0.8, 1]} rotation={[0, Math.PI/4, 0]}>
-              <meshStandardMaterial color="#991b1b" />
-            </mesh>
-          </group>
-        );
-      default:
-        return <mesh geometry={GEOMETRY.box} scale={0.8} castShadow><meshStandardMaterial color={config.color} /></mesh>;
+  const parts = useMemo(() => {
+    const schema = BUILDING_SCHEMAS[tile.buildingType];
+    if (!schema) return null;
+    if (Array.isArray(schema[0])) {
+      const variants = schema as BuildingPart[][];
+      return variants[variantIndex % variants.length];
     }
-  };
+    return schema as BuildingPart[];
+  }, [tile.buildingType, variantIndex]);
 
   return (
     <group position={[0, -0.2, 0]}>
-      <group scale={[1, lScale, 1]}>{renderModel()}</group>
+      <group scale={[1, lScale, 1]}>
+        {parts?.map((part, i) => (
+          <PartRenderer key={i} part={part} config={config} />
+        ))}
+      </group>
       {showUpgrade && <MagicBurst type={tile.buildingType} level={tile.level} />}
     </group>
   );

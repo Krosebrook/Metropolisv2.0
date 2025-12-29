@@ -27,6 +27,7 @@ export enum BuildingType {
   Windmill = 'Windmill',
   MarketSquare = 'MarketSquare',
   MagicAcademy = 'MagicAcademy',
+  GrandObservatory = 'GrandObservatory',
 }
 
 export interface BuildingConfig {

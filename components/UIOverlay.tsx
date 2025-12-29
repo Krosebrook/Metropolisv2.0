@@ -127,6 +127,7 @@ const getIconForType = (type: BuildingType) => {
     case BuildingType.Windmill: return '🌾';
     case BuildingType.MarketSquare: return '⚖️';
     case BuildingType.MagicAcademy: return '🎩';
+    case BuildingType.GrandObservatory: return '🔭';
     case BuildingType.Upgrade: return '✨';
     case BuildingType.None: return '🧹';
     default: return '❓';
@@ -154,7 +155,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ stats, selectedTool, onSelectTool
     { id: 'abodes', name: 'Abodes', icon: '🏠', types: [BuildingType.Residential] },
     { id: 'treasury', name: 'Treasury', icon: '💰', types: [BuildingType.Commercial, BuildingType.Industrial, BuildingType.LumberMill, BuildingType.Bakery, BuildingType.Windmill, BuildingType.MarketSquare] },
     { id: 'arcane', name: 'Arcane', icon: '🔮', types: [BuildingType.PowerPlant, BuildingType.WaterTower, BuildingType.LuminaBloom, BuildingType.FireStation] },
-    { id: 'society', name: 'Society', icon: '🎓', types: [BuildingType.PoliceStation, BuildingType.School, BuildingType.Library, BuildingType.MagicAcademy, BuildingType.Park] },
+    { id: 'society', name: 'Society', icon: '🎓', types: [BuildingType.PoliceStation, BuildingType.School, BuildingType.Library, BuildingType.MagicAcademy, BuildingType.GrandObservatory, BuildingType.Park] },
     { id: 'monuments', name: 'Relics', icon: '🏰', types: [BuildingType.Landmark] },
     { id: 'tools', name: 'Tools', icon: '⚒️', types: [BuildingType.Road, BuildingType.Upgrade, BuildingType.None] }
   ];
