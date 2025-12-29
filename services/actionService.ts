@@ -52,7 +52,11 @@ export class ActionService {
       return { newGrid: grid, newStats: stats, success: false, message: `The treasury lacks the ${cost}g required for this rite.`, type: 'negative' };
     }
 
-    const newGrid = grid.map((row, ridx) => ridx === y ? row.map((t, cidx) => cidx === x ? { ...t, level: t.level + 1 } : t) : row);
+    const newGrid = grid.map((row, ridx) => ridx === y ? row.map((t, cidx) => cidx === x ? { 
+      ...t, 
+      level: t.level + 1,
+      lastUpgraded: Date.now() // Added timestamp for visual effect triggers
+    } : t) : row);
     const newStats = { ...stats, money: stats.money - cost };
 
     return {
@@ -74,7 +78,12 @@ export class ActionService {
       return { newGrid: grid, newStats: stats, success: false, message: `Thy treasury needs ${config.cost}g to establish this ${config.name}.`, type: 'negative' };
     }
 
-    const newGrid = grid.map((row, ridx) => ridx === y ? row.map((t, cidx) => cidx === x ? { ...t, buildingType: tool, level: 1 } : t) : row);
+    const newGrid = grid.map((row, ridx) => ridx === y ? row.map((t, cidx) => cidx === x ? { 
+      ...t, 
+      buildingType: tool, 
+      level: 1,
+      variant: Math.floor(Math.random() * 5)
+    } : t) : row);
     const newStats = { ...stats, money: stats.money - config.cost };
 
     return {
@@ -88,7 +97,7 @@ export class ActionService {
     const tile = grid[y][x];
     if (tile.buildingType === BuildingType.None) return { newGrid: grid, newStats: stats, success: false, message: "The land is already clear.", type: 'neutral' };
 
-    const newGrid = grid.map((row, ridx) => ridx === y ? row.map((t, cidx) => cidx === x ? { ...t, buildingType: BuildingType.None, level: 1 } : t) : row);
+    const newGrid = grid.map((row, ridx) => ridx === y ? row.map((t, cidx) => cidx === x ? { ...t, buildingType: BuildingType.None, level: 1, variant: undefined, lastUpgraded: undefined } : t) : row);
     const newStats = { ...stats, money: Math.max(0, stats.money - 20) };
 
     return {

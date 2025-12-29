@@ -62,4 +62,13 @@ export const BUILDINGS: Record<BuildingType, BuildingConfig> = {
   [BuildingType.LuminaBloom]: {
     type: BuildingType.LuminaBloom, cost: 250, maintenance: 10, name: 'Lumina Bloom', description: 'Radiant flowers that soothe souls.', color: '#d946ef', popGen: 3, incomeGen: 0, manaReq: 0, essenceReq: 3, serviceRadius: 4
   },
+  [BuildingType.Windmill]: {
+    type: BuildingType.Windmill, cost: 400, maintenance: 20, name: 'Windmill', description: 'Grinds stardust into golden flour.', color: '#fef3c7', popGen: 0, incomeGen: 60, manaReq: 2, essenceReq: 2
+  },
+  [BuildingType.MarketSquare]: {
+    type: BuildingType.MarketSquare, cost: 1100, maintenance: 55, name: 'Market Square', description: 'A bustling hub for planar merchants.', color: '#fbbf24', popGen: 0, incomeGen: 160, manaReq: 6, essenceReq: 4, serviceRadius: 5
+  },
+  [BuildingType.MagicAcademy]: {
+    type: BuildingType.MagicAcademy, cost: 2400, maintenance: 130, name: 'Magic Academy', description: 'Where tomorrow\'s Archmages begin their journey.', color: '#818cf8', popGen: 0, incomeGen: 0, manaReq: 15, essenceReq: 10, serviceRadius: 8
+  },
 };

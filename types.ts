@@ -24,6 +24,9 @@ export enum BuildingType {
   Bakery = 'Bakery',
   Library = 'GreatLibrary',
   LuminaBloom = 'LuminaBloom',
+  Windmill = 'Windmill',
+  MarketSquare = 'MarketSquare',
+  MagicAcademy = 'MagicAcademy',
 }
 
 export interface BuildingConfig {
@@ -53,6 +56,7 @@ export interface TileData {
   hasWisdom: boolean;  
   happiness: number; 
   lastUpgraded?: number;
+  variant?: number;
 }
 
 export type Grid = TileData[][];

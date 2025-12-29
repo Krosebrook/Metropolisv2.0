@@ -43,15 +43,12 @@ class SoundService {
         this.playCottageWood(ctx, now);
         break;
       case BuildingType.Commercial:
-      case BuildingType.Bakery:
         this.playTavernClink(ctx, now);
         break;
       case BuildingType.Industrial:
-      case BuildingType.LumberMill:
         this.playMineStrike(ctx, now);
         break;
       case BuildingType.Park:
-      case BuildingType.LuminaBloom:
         this.playForestShimmer(ctx, now);
         break;
       case BuildingType.PowerPlant:
@@ -70,8 +67,19 @@ class SoundService {
         this.playMageSanctumWarp(ctx, now);
         break;
       case BuildingType.School:
-      case BuildingType.Library:
         this.playAlchemyCrystals(ctx, now);
+        break;
+      case BuildingType.LumberMill:
+        this.playLumberMillSaw(ctx, now);
+        break;
+      case BuildingType.Bakery:
+        this.playBakeryWarmth(ctx, now);
+        break;
+      case BuildingType.Library:
+        this.playLibraryWisdom(ctx, now);
+        break;
+      case BuildingType.LuminaBloom:
+        this.playLuminaBloomRadiance(ctx, now);
         break;
       default:
         this.playGeneric(ctx, now);
@@ -172,7 +180,7 @@ class SoundService {
       gain.gain.setValueAtTime(0.04, now + delay);
       gain.gain.linearRampToValueAtTime(0, now + delay + 0.05);
       osc.connect(gain).connect(ctx.destination);
-      soundSource: osc.start(now + delay);
+      osc.start(now + delay);
       osc.stop(now + delay + 0.05);
     }
   }
@@ -234,6 +242,60 @@ class SoundService {
       osc.start(now + i * 0.05);
       osc.stop(now + i * 0.05 + 0.2);
     });
+  }
+
+  private playLumberMillSaw(ctx: AudioContext, now: number) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(100, now);
+    osc.frequency.linearRampToValueAtTime(50, now + 0.3);
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(now + 0.3);
+  }
+
+  private playBakeryWarmth(ctx: AudioContext, now: number) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(330, now);
+    osc.frequency.exponentialRampToValueAtTime(440, now + 0.25);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(now + 0.25);
+  }
+
+  private playLibraryWisdom(ctx: AudioContext, now: number) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(110, now);
+    osc.frequency.linearRampToValueAtTime(112, now + 0.8); // Subtle vibrato-like drift
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.1, now + 0.2);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(now + 0.8);
+  }
+
+  private playLuminaBloomRadiance(ctx: AudioContext, now: number) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1567.98, now); // G6
+    osc.frequency.exponentialRampToValueAtTime(3135.96, now + 0.4); // G7
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.05, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(now + 0.4);
   }
 
   private playGeneric(ctx: AudioContext, now: number) {

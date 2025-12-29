@@ -131,7 +131,7 @@ export class SimulationService {
           if (Math.sqrt(dx * dx + dy * dy) <= r) {
             if (type === BuildingType.PoliceStation) coverage.guards[ny][nx] = true;
             if (type === BuildingType.FireStation) coverage.mages[ny][nx] = true;
-            if (type === BuildingType.School || type === BuildingType.Library) coverage.wisdom[ny][nx] = true;
+            if (type === BuildingType.School || type === BuildingType.Library || type === BuildingType.MagicAcademy) coverage.wisdom[ny][nx] = true;
             if (type === BuildingType.Park || type === BuildingType.LuminaBloom) coverage.nature[ny][nx] = true;
             if (type === BuildingType.Bakery) coverage.sweets[ny][nx] = true;
           }
@@ -141,7 +141,7 @@ export class SimulationService {
   }
 
   private static checkIndustrialProximity(grid: Grid, x: number, y: number, radius: number): boolean {
-    const industrialTypes = [BuildingType.Industrial, BuildingType.LumberMill];
+    const industrialTypes = [BuildingType.Industrial, BuildingType.LumberMill, BuildingType.Windmill];
     for (let dy = -radius; dy <= radius; dy++) {
       for (let dx = -radius; dx <= radius; dx++) {
         const nx = x + dx;
