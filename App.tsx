@@ -55,6 +55,7 @@ function App() {
 
   const gridRef = useRef(grid);
   const statsRef = useRef(stats);
+  const isFetchingGoal = useRef(false);
   
   useEffect(() => { 
     gridRef.current = grid; 
@@ -69,6 +70,7 @@ function App() {
     }
   }, []);
 
+  // Main simulation tick
   useEffect(() => {
     if (!gameStarted || isConsoleOpen) return;
     const interval = setInterval(() => {
@@ -81,6 +83,66 @@ function App() {
     }, TICK_RATE_MS);
     return () => clearInterval(interval);
   }, [gameStarted, aiEnabled, isConsoleOpen]);
+
+  // Goal logic: Completion check and automatic generation
+  useEffect(() => {
+    if (!gameStarted || !aiEnabled) return;
+
+    // 1. If goal is active and not completed, check if it's met
+    if (currentGoal && !currentGoal.completed) {
+      const goal = currentGoal;
+      let met = false;
+
+      if (goal.targetType === 'population') met = stats.population >= goal.targetValue;
+      else if (goal.targetType === 'money') met = stats.money >= goal.targetValue;
+      else if (goal.targetType === 'happiness') met = stats.happiness >= goal.targetValue;
+      else if (goal.targetType === 'building_count' && goal.buildingType) {
+        const count = grid.flat().filter(t => t.buildingType === goal.buildingType).length;
+        met = count >= goal.targetValue;
+      }
+
+      if (met) {
+        soundService.playReward();
+        setStats(prev => ({ ...prev, money: prev.money + goal.reward }));
+        setCurrentGoal(prev => prev ? { ...prev, completed: true } : null);
+        // Herald notification
+        const completionNews: NewsItem = {
+          id: Math.random().toString(36).substring(7),
+          text: `Huzzah! The Royal Wizard's decree has been fulfilled!`,
+          type: 'positive',
+          timestamp: Date.now()
+        };
+        setNewsFeed(p => [completionNews, ...p].slice(0, 10));
+      }
+      return;
+    }
+
+    // 2. If no goal or goal is completed, fetch a new one
+    if (!currentGoal || currentGoal.completed) {
+      if (isFetchingGoal.current) return;
+      isFetchingGoal.current = true;
+
+      const timer = setTimeout(async () => {
+        try {
+          const goal = await generateCityGoal(statsRef.current, gridRef.current);
+          if (goal) {
+            setCurrentGoal(goal);
+            // Herald notification
+            const arrivalNews: NewsItem = {
+              id: Math.random().toString(36).substring(7),
+              text: `A new magical prophecy has been delivered by the Royal Wizard.`,
+              type: 'urgent',
+              timestamp: Date.now()
+            };
+            setNewsFeed(p => [arrivalNews, ...p].slice(0, 10));
+          }
+        } finally {
+          isFetchingGoal.current = false;
+        }
+      }, 3000); // 3-second pause between goals
+      return () => clearTimeout(timer);
+    }
+  }, [gameStarted, aiEnabled, stats.population, stats.money, stats.happiness, grid, currentGoal]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -115,7 +177,7 @@ function App() {
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-slate-950">
       <IsoMap grid={grid} onTileClick={handleTileClick} onSelectTool={setSelectedTool} time={stats.time} weather={stats.weather} isLocked={isPanelOpen || isConsoleOpen} />
-      {!gameStarted && <StartScreen onStart={() => setGameStarted(true)} />}
+      {!gameStarted && <StartScreen onStart={(ai) => { setAiEnabled(ai); setGameStarted(true); }} />}
       {gameStarted && <UIOverlay stats={stats} selectedTool={selectedTool} onSelectTool={setSelectedTool} currentGoal={currentGoal} newsFeed={newsFeed} grid={grid} onPanelStateChange={setIsPanelOpen} />}
       <WizardConsole stats={stats} grid={grid} isOpen={isConsoleOpen} onClose={() => setIsConsoleOpen(false)} onCommand={(cmd, args) => {
         if (cmd === 'gift') setStats(p => ({ ...p, money: p.money + (parseInt(args[0]) || 1000) }));

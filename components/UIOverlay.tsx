@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import React, { useState, useEffect } from 'react';
-import { BuildingType, BuildingConfig, CityStats, Grid } from '../types';
+import { BuildingType, BuildingConfig, CityStats, Grid, AIGoal } from '../types';
 import { BUILDINGS } from '../constants';
 import AdvisorPanel from './AdvisorPanel';
 
@@ -16,8 +16,41 @@ const StatIcon = ({ type }: { type: string }) => {
     case 'essence': return <span className="text-blue-400">💧</span>;
     case 'upkeep': return <span className="text-rose-400">📜</span>;
     case 'range': return <span className="text-sky-400">🏹</span>;
+    case 'quest': return <span className="text-amber-500 text-lg">📜</span>;
     default: return null;
   }
+};
+
+const RoyalDecree = ({ goal }: { goal: AIGoal | null }) => {
+  if (!goal) return null;
+
+  return (
+    <div className="bg-stone-900/80 border border-amber-900/40 rounded-3xl p-6 backdrop-blur-md shadow-2xl pointer-events-auto ring-1 ring-white/5 w-80 animate-in slide-in-from-left duration-700">
+      <div className="flex items-center gap-3 mb-3">
+        <StatIcon type="quest" />
+        <h4 className="text-amber-100 font-black uppercase text-xs tracking-widest">Royal Decree</h4>
+        {goal.completed && (
+          <span className="ml-auto bg-emerald-500/20 text-emerald-400 text-[8px] px-2 py-0.5 rounded-full font-black animate-pulse">FULFILLED</span>
+        )}
+      </div>
+      <p className="text-amber-50/70 text-sm italic font-serif leading-relaxed mb-4">
+        "{goal.description}"
+      </p>
+      <div className="flex items-center justify-between bg-black/30 rounded-xl p-3 border border-white/5">
+        <div className="flex flex-col">
+          <span className="text-[8px] text-stone-500 font-black uppercase tracking-tighter mb-1">Target</span>
+          <span className="text-xs font-black text-amber-200">
+            {goal.targetValue} {goal.targetType.replace('_', ' ')}
+            {goal.buildingType && ` (${goal.buildingType})`}
+          </span>
+        </div>
+        <div className="text-right flex flex-col">
+          <span className="text-[8px] text-stone-500 font-black uppercase tracking-tighter mb-1">Grant</span>
+          <span className="text-xs font-black text-emerald-400">+{goal.reward}G</span>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const BuildingTooltip = ({ config }: { config: BuildingConfig }) => {
@@ -80,7 +113,6 @@ interface ToolButtonProps {
   onClick: () => void;
 }
 
-// Fix: typed ToolButton to correctly allow React reserved props like 'key' when mapping
 const ToolButton: React.FC<ToolButtonProps> = ({ type, selected, onClick }) => {
   const config = BUILDINGS[type];
   const [hovered, setHovered] = useState(false);
@@ -138,7 +170,7 @@ interface UIOverlayProps {
   stats: CityStats;
   selectedTool: BuildingType;
   onSelectTool: (t: BuildingType) => void;
-  currentGoal: any;
+  currentGoal: AIGoal | null;
   newsFeed: any[];
   grid: Grid;
   onPanelStateChange: (open: boolean) => void;
@@ -148,7 +180,6 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ stats, selectedTool, onSelectTool
   const [isAdvisorOpen, setIsAdvisorOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('abodes');
 
-  // Fix: Imported and used useEffect to ensure external state stays in sync with local panel state
   useEffect(() => onPanelStateChange(isAdvisorOpen), [isAdvisorOpen, onPanelStateChange]);
 
   const categories = [
@@ -164,7 +195,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ stats, selectedTool, onSelectTool
     <div className="absolute inset-0 pointer-events-none flex flex-col font-serif">
       {/* Top Header */}
       <div className="p-8 flex justify-between items-start bg-gradient-to-b from-stone-950/80 to-transparent">
-        <div className="flex gap-6">
+        <div className="flex flex-col gap-4">
           <div className="bg-stone-900/80 border border-white/10 rounded-3xl p-5 backdrop-blur-md shadow-2xl flex gap-8 items-center pointer-events-auto ring-1 ring-white/5">
             <div className="flex flex-col">
               <div className="flex items-center gap-2 mb-1">
@@ -191,6 +222,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ stats, selectedTool, onSelectTool
               </div>
             </div>
           </div>
+
+          <RoyalDecree goal={currentGoal} />
         </div>
 
         {/* Wizard Advisor Trigger */}

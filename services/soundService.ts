@@ -81,6 +81,18 @@ class SoundService {
       case BuildingType.LuminaBloom:
         this.playLuminaBloomRadiance(ctx, now);
         break;
+      case BuildingType.Windmill:
+        this.playWindmillCreak(ctx, now);
+        break;
+      case BuildingType.MarketSquare:
+        this.playMarketHubbub(ctx, now);
+        break;
+      case BuildingType.MagicAcademy:
+        this.playAcademyResonance(ctx, now);
+        break;
+      case BuildingType.GrandObservatory:
+        this.playObservatoryGears(ctx, now);
+        break;
       default:
         this.playGeneric(ctx, now);
     }
@@ -296,6 +308,128 @@ class SoundService {
     osc.connect(gain).connect(ctx.destination);
     osc.start();
     osc.stop(now + 0.4);
+  }
+
+  private playWindmillCreak(ctx: AudioContext, now: number) {
+    // 1. Wood creak (slow sawtooth)
+    const creak = ctx.createOscillator();
+    const creakGain = ctx.createGain();
+    creak.type = 'sawtooth';
+    creak.frequency.setValueAtTime(20, now);
+    creak.frequency.exponentialRampToValueAtTime(15, now + 0.6);
+    creakGain.gain.setValueAtTime(0.05, now);
+    creakGain.gain.linearRampToValueAtTime(0, now + 0.6);
+    creak.connect(creakGain).connect(ctx.destination);
+    creak.start();
+    creak.stop(now + 0.6);
+
+    // 2. Wind swoosh (white noise)
+    const bufferSize = ctx.sampleRate * 0.8;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'lowpass';
+    noiseFilter.frequency.setValueAtTime(100, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(600, now + 0.4);
+    noiseFilter.frequency.exponentialRampToValueAtTime(200, now + 0.8);
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.05, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+
+    noise.connect(noiseFilter).connect(noiseGain).connect(ctx.destination);
+    noise.start();
+    noise.stop(now + 0.8);
+  }
+
+  private playMarketHubbub(ctx: AudioContext, now: number) {
+    // 1. Simulated voices (multi-sine cluster)
+    [350, 420, 560, 680].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+      // Fast jittery volume
+      for(let t = 0; t < 0.6; t += 0.05) {
+        gain.gain.setValueAtTime(0.02 * Math.random(), now + t);
+      }
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(now + 0.6);
+    });
+
+    // 2. Coin jingle
+    const coin = ctx.createOscillator();
+    const coinGain = ctx.createGain();
+    coin.type = 'sine';
+    coin.frequency.setValueAtTime(4500, now + 0.1);
+    coinGain.gain.setValueAtTime(0.04, now + 0.1);
+    coinGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    coin.connect(coinGain).connect(ctx.destination);
+    coin.start(now + 0.1);
+    coin.stop(now + 0.3);
+  }
+
+  private playAcademyResonance(ctx: AudioContext, now: number) {
+    // High-pitched "sparkle" sweep
+    const sweep = ctx.createOscillator();
+    const sweepGain = ctx.createGain();
+    sweep.type = 'sine';
+    sweep.frequency.setValueAtTime(1000, now);
+    sweep.frequency.exponentialRampToValueAtTime(4000, now + 0.8);
+    sweepGain.gain.setValueAtTime(0, now);
+    sweepGain.gain.linearRampToValueAtTime(0.06, now + 0.2);
+    sweepGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+    sweep.connect(sweepGain).connect(ctx.destination);
+    sweep.start();
+    sweep.stop(now + 0.8);
+
+    // Resonant low chord
+    [110, 165, 220].forEach(freq => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(now + 1.2);
+    });
+  }
+
+  private playObservatoryGears(ctx: AudioContext, now: number) {
+    // 1. Clockwork ticks
+    for(let i = 0; i < 4; i++) {
+      const t = now + i * 0.15;
+      const tick = ctx.createOscillator();
+      const tickGain = ctx.createGain();
+      tick.type = 'square';
+      tick.frequency.setValueAtTime(1200, t);
+      tickGain.gain.setValueAtTime(0.03, t);
+      tickGain.gain.linearRampToValueAtTime(0, t + 0.02);
+      tick.connect(tickGain).connect(ctx.destination);
+      tick.start(t);
+      tick.stop(t + 0.02);
+    }
+
+    // 2. Celestial drone
+    const drone = ctx.createOscillator();
+    const droneGain = ctx.createGain();
+    drone.type = 'sine';
+    drone.frequency.setValueAtTime(70, now);
+    drone.frequency.exponentialRampToValueAtTime(72, now + 1.0);
+    droneGain.gain.setValueAtTime(0, now);
+    droneGain.gain.linearRampToValueAtTime(0.1, now + 0.3);
+    droneGain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+    drone.connect(droneGain).connect(ctx.destination);
+    drone.start();
+    drone.stop(now + 1.0);
   }
 
   private playGeneric(ctx: AudioContext, now: number) {
