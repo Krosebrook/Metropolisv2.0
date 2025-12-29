@@ -1,20 +1,24 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
 
-# Run and deploy your AI Studio app
+# FableRealm: PWA Kingdom Architect
 
-This contains everything you need to run your app locally.
+FableRealm is a production-grade fairytale city-builder and SaaS simulation built with React, Three.js, and Google Gemini.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1N5KVgd3GyovrlPopdSej8ELjwDDX7o29
+## 🌟 Key Features
+- **3D Isometric Engine**: High-performance rendering via `@react-three/fiber`.
+- **AI Oracle**: Integration with Gemini-3 Flash for dynamic quests and herald news.
+- **Wizard's Grimoire (Terminal)**: A developer console accessible via the backtick (`) key for state scrying and ethereal debugging.
+- **PWA Ready**: Offline session persistence and standalone installation support.
+- **Advanced Simulation**: Multi-factor happiness metrics including Arcane Safety, Wisdom Reach, and Industrial Proximity.
 
-## Run Locally
+## 🛠 Tech Stack
+- **Frontend**: React 19, Tailwind CSS
+- **Graphics**: Three.js, R3F
+- **Intelligence**: Google GenAI SDK (Gemini-3 Flash)
+- **Persistence**: LocalStorage with Profile-based Slotting
 
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 🕹 Terminal Commands
+Access the console using the `~` or `` ` `` key.
+- `scry [query]`: Ask the Royal Wizard for lore or strategic advice.
+- `gift [amount]`: Infuse the treasury with gold.
+- `stats`: Export the current kingdom state as JSON.
+- `rain [type]`: Control the meteorological spirits (clear, rain, storm).
