@@ -69,36 +69,22 @@ function App() {
     }
   }, []);
 
-  const fetchNews = async () => {
-    const news = await generateNewsEvent(statsRef.current, "Quiet prosperity");
-    if (news) setNewsFeed(prev => [news, ...prev].slice(0, 12));
-  };
-
-  const fetchGoal = async () => {
-    const goal = await generateCityGoal(statsRef.current, gridRef.current);
-    if (goal) setCurrentGoal(goal);
-  };
-
   useEffect(() => {
     if (!gameStarted || isConsoleOpen) return;
     const interval = setInterval(() => {
-      if (document.hidden) return; // Pause logic for better performance
+      if (document.hidden) return;
       const { newStats, newGrid } = SimulationService.calculateTick(gridRef.current, statsRef.current);
       setStats(newStats);
       setGrid(newGrid);
-      if (Math.random() < 0.1 && aiEnabled) fetchNews();
-      if (!currentGoal && Math.random() < 0.05 && aiEnabled) fetchGoal();
+      if (Math.random() < 0.1 && aiEnabled) generateNewsEvent(statsRef.current, "Prosperity").then(news => news && setNewsFeed(p => [news, ...p].slice(0, 10)));
       SaveService.save(newGrid, newStats);
     }, TICK_RATE_MS);
     return () => clearInterval(interval);
-  }, [gameStarted, aiEnabled, currentGoal, isConsoleOpen]);
+  }, [gameStarted, aiEnabled, isConsoleOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '`') {
-        setIsConsoleOpen(prev => !prev);
-        return;
-      }
+      if (e.key === '`') { setIsConsoleOpen(prev => !prev); return; }
       if (!gameStarted || isConsoleOpen || isPanelOpen) return;
       const key = e.key.toLowerCase();
       const shortcutMap: Record<string, BuildingType> = {
@@ -106,22 +92,15 @@ function App() {
         '4': BuildingType.Industrial, '5': BuildingType.Park, '6': BuildingType.PowerPlant,
         '7': BuildingType.WaterTower, '8': BuildingType.PoliceStation, '9': BuildingType.FireStation,
         '0': BuildingType.School, 'b': BuildingType.None, 'e': BuildingType.Upgrade,
+        'w': BuildingType.Windmill, 'm': BuildingType.MarketSquare, 'a': BuildingType.MagicAcademy,
+        'l': BuildingType.Library, 'k': BuildingType.Bakery, 'f': BuildingType.Park,
+        'g': BuildingType.PoliceStation, 'c': BuildingType.Landmark
       };
       if (shortcutMap[key]) setSelectedTool(shortcutMap[key]);
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [gameStarted, isConsoleOpen, isPanelOpen]);
-
-  const handleConsoleCommand = (cmd: string, args: string[]) => {
-    if (cmd === 'gift') {
-      const amount = parseInt(args[0]) || 1000;
-      setStats(prev => ({ ...prev, money: prev.money + amount }));
-    }
-    if (cmd === 'rain') {
-      setStats(prev => ({ ...prev, weather: args[0] as any || 'rain' }));
-    }
-  };
 
   const handleTileClick = useCallback((x: number, y: number) => {
     if (!gameStarted || isConsoleOpen) return;
@@ -135,33 +114,13 @@ function App() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-slate-950">
-      <IsoMap 
-        grid={grid} 
-        onTileClick={handleTileClick} 
-        onSelectTool={setSelectedTool}
-        time={stats.time}
-        weather={stats.weather}
-        isLocked={isPanelOpen || isConsoleOpen}
-      />
+      <IsoMap grid={grid} onTileClick={handleTileClick} onSelectTool={setSelectedTool} time={stats.time} weather={stats.weather} isLocked={isPanelOpen || isConsoleOpen} />
       {!gameStarted && <StartScreen onStart={() => setGameStarted(true)} />}
-      {gameStarted && (
-        <UIOverlay
-          stats={stats}
-          selectedTool={selectedTool}
-          onSelectTool={setSelectedTool}
-          currentGoal={currentGoal}
-          newsFeed={newsFeed}
-          grid={grid}
-          onPanelStateChange={setIsPanelOpen}
-        />
-      )}
-      <WizardConsole 
-        stats={stats} 
-        grid={grid} 
-        isOpen={isConsoleOpen} 
-        onClose={() => setIsConsoleOpen(false)} 
-        onCommand={handleConsoleCommand}
-      />
+      {gameStarted && <UIOverlay stats={stats} selectedTool={selectedTool} onSelectTool={setSelectedTool} currentGoal={currentGoal} newsFeed={newsFeed} grid={grid} onPanelStateChange={setIsPanelOpen} />}
+      <WizardConsole stats={stats} grid={grid} isOpen={isConsoleOpen} onClose={() => setIsConsoleOpen(false)} onCommand={(cmd, args) => {
+        if (cmd === 'gift') setStats(p => ({ ...p, money: p.money + (parseInt(args[0]) || 1000) }));
+        if (cmd === 'weather') setStats(p => ({ ...p, weather: args[0] as any || 'rain' }));
+      }} />
     </div>
   );
 }
