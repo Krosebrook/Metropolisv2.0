@@ -1,13 +1,24 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PolyCity AI 3D</title>
+    <title>FableRealm: Castle Builder</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#f59e0b">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3721/3721591.png">
     <style>
         /* Hide scrollbar for main view to act like a game canvas */
-        body { overflow: hidden; background-color: #0c4a6e; /* sky-900 */ }
+        body { 
+            overflow: hidden; 
+            background-color: #0c0a09; 
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
     </style>
 <script type="importmap">
 {
@@ -28,5 +39,16 @@
 <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('SW registered: ', registration);
+                }).catch(registrationError => {
+                    console.log('SW registration failed: ', registrationError);
+                });
+            });
+        }
+    </script>
 </body>
 </html>

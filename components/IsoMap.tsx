@@ -243,50 +243,387 @@ const BUILDING_SCHEMAS: Record<string, BuildingPart[] | BuildingPart[][]> = {
       { geometry: ['coneGeometry', [0.4, 0.4, 4]] as [string, any[]], position: [-0.2, 0.5, 0.2], rotation: [0, Math.PI / 4, 0], color: ROOF_COLOR }
     ]
   ],
+  [BuildingType.Commercial]: [
+    // Variant 0: Standard Inn
+    [
+      { geometry: 'box' as const, scale: [1.2, 0.7, 0.9], position: [0, 0.15, 0], useConfigColor: true },
+      { geometry: 'box' as const, scale: [1.3, 0.1, 1.0], position: [0, 0.5, 0], color: "#573010" },
+      { geometry: 'box' as const, scale: [1.1, 0.6, 0.8], position: [0, 0.8, 0], useConfigColor: true },
+      { geometry: ['coneGeometry', [0.9, 0.6, 4]] as [string, any[]], position: [0, 1.1, 0], rotation: [0, Math.PI/4, 0], color: "#451a03" },
+      { geometry: 'box' as const, scale: [0.2, 0.6, 0.2], position: [0.4, 1.0, 0.2], color: "#78350f" }, // Chimney
+    ],
+    // Variant 1: Round Tavern "The Barrel"
+    [
+      { geometry: ['cylinderGeometry', [0.6, 0.6, 0.8, 8]] as [string, any[]], position: [0, 0.4, 0], useConfigColor: true },
+      { geometry: ['coneGeometry', [0.7, 0.5, 8]] as [string, any[]], position: [0, 1.0, 0], color: "#573010" },
+      { geometry: 'box' as const, scale: [0.4, 0.1, 0.3], position: [0, 0.2, 0.6], color: "#451a03" }, // Porch
+    ],
+    // Variant 2: Outdoor Beer Garden
+    [
+      { geometry: 'box' as const, scale: [0.6, 0.7, 0.6], position: [-0.2, 0.35, -0.2], useConfigColor: true },
+      { geometry: ['coneGeometry', [0.5, 0.5, 4]] as [string, any[]], position: [-0.2, 0.8, -0.2], rotation: [0, Math.PI/4, 0], color: "#573010" },
+      { geometry: 'box' as const, scale: [1.2, 0.05, 1.2], position: [0, 0.02, 0], color: "#78350f" }, // Deck
+      // Tables
+      ...[ [0.3, 0.3], [0.3, -0.3], [-0.3, 0.3] ].map(p => ({
+        geometry: 'cylinder' as const, scale: [0.2, 0.05, 0.2] as [number, number, number], position: [p[0], 0.1, p[1]] as [number, number, number], color: "#92400e"
+      }))
+    ],
+    // Variant 3: Corner Pub
+    [
+      { geometry: 'box' as const, scale: [0.9, 0.8, 0.9], position: [0, 0.4, 0], useConfigColor: true },
+      { geometry: ['coneGeometry', [0.8, 0.6, 4]] as [string, any[]], position: [0, 1.0, 0], rotation: [0, Math.PI/4, 0], color: "#3f1d06" },
+      { geometry: 'box' as const, scale: [0.4, 0.4, 0.1], position: [0, 0.6, 0.46], color: "#fbbf24", emissive: "#fbbf24", emissiveIntensity: 0.5 } // Sign
+    ]
+  ],
+  [BuildingType.Industrial]: [
+    // Variant 0: Mine Shaft
+    [
+      { geometry: 'box' as const, scale: [1.2, 0.2, 1.2], position: [0, 0.1, 0], color: "#334155" },
+      { geometry: 'box' as const, scale: [0.6, 0.6, 0.6], position: [-0.2, 0.4, -0.2], useConfigColor: true },
+      { geometry: 'box' as const, scale: [0.1, 0.8, 0.1], position: [0.3, 0.5, 0.3], color: "#94a3b8" }, // Crane post
+      { geometry: 'box' as const, scale: [0.6, 0.05, 0.05], position: [0.1, 0.9, 0.3], rotation: [0, 0, -0.2], color: "#94a3b8" }, // Crane arm
+    ],
+    // Variant 1: Crystal Quarry
+    [
+      { geometry: 'box' as const, scale: [1.1, 0.3, 1.1], position: [0, 0.15, 0], color: "#475569" },
+      // Crystals
+      ...[ [-0.2, 0.3, 0.2], [0.3, 0.2, -0.3], [0, 0.4, 0] ].map((p, i) => ({
+        geometry: 'octa' as const, scale: 0.3 - (i*0.05), position: p as [number, number, number], color: "#38bdf8", emissive: "#0ea5e9", emissiveIntensity: 1.5
+      })),
+      { geometry: 'box' as const, scale: [0.4, 0.4, 0.4], position: [-0.3, 0.3, -0.3], useConfigColor: true }
+    ],
+    // Variant 2: Smelter
+    [
+      { geometry: 'box' as const, scale: [1, 0.6, 0.8], position: [0, 0.3, 0], useConfigColor: true },
+      { geometry: ['cylinderGeometry', [0.2, 0.3, 1, 8]] as [string, any[]], position: [0.3, 0.6, 0.2], color: "#1e293b" }, // Chimney
+      { component: SmokeEmitter, position: [0.3, 1.1, 0.2] },
+      { geometry: 'sphere' as const, scale: 0.2, position: [-0.3, 0.2, 0.4], color: "#ea580c", emissive: "#c2410c", emissiveIntensity: 2 } // Molten pile
+    ],
+    // Variant 3: Excavation Pit
+    [
+      { geometry: 'torus' as const, scale: [1.2, 0.3, 0.5], position: [0, 0.1, 0], rotation: [Math.PI/2, 0, 0], color: "#334155" },
+      { geometry: 'box' as const, scale: [0.1, 0.8, 0.1], position: [0, 0.4, 0], color: "#94a3b8" }, // Winch
+      { geometry: 'box' as const, scale: [0.5, 0.1, 0.1], position: [0, 0.8, 0], color: "#94a3b8" },
+      { geometry: 'box' as const, scale: [0.3, 0.3, 0.3], position: [0.4, 0.2, 0], useConfigColor: true }
+    ]
+  ],
   [BuildingType.Park]: [
-    { component: ForestWisps },
-    ...[[-0.2, 0.2], [0.3, -0.1], [-0.2, -0.3]].map(p => ({
-      position: [p[0], 0, p[1]] as [number, number, number],
-      children: [
-        { geometry: ['cylinderGeometry', [0.05, 0.08, 0.3, 6]] as [string, any[]], position: [0, 0.1, 0], color: "#3f2305" },
-        { geometry: ['coneGeometry', [0.25, 0.5, 5]] as [string, any[]], position: [0, 0.4, 0], color: "#14532d" }
-      ] as BuildingPart[]
-    } as BuildingPart))
+    // Variant 0: Wisps Grove
+    [
+      { component: ForestWisps },
+      ...[[-0.2, 0.2], [0.3, -0.1], [-0.2, -0.3]].map(p => ({
+        position: [p[0], 0, p[1]] as [number, number, number],
+        children: [
+          { geometry: ['cylinderGeometry', [0.05, 0.08, 0.3, 6]] as [string, any[]], position: [0, 0.1, 0], color: "#3f2305" },
+          { geometry: ['coneGeometry', [0.25, 0.5, 5]] as [string, any[]], position: [0, 0.4, 0], color: "#14532d" }
+        ] as BuildingPart[]
+      } as BuildingPart))
+    ],
+    // Variant 1: Ancient Pond
+    [
+      { geometry: ['cylinderGeometry', [0.5, 0.5, 0.1, 16]] as [string, any[]], position: [0, 0.05, 0], color: "#0ea5e9", emissive: "#0284c7", emissiveIntensity: 0.5 },
+      ...[0, 1, 2, 3].map(i => ({
+        geometry: 'sphere' as const, scale: 0.1, position: [Math.cos(i*1.5)*0.55, 0.1, Math.sin(i*1.5)*0.55] as [number, number, number], color: "#57534e"
+      })),
+      { geometry: ['coneGeometry', [0.2, 0.4, 4]] as [string, any[]], position: [-0.3, 0.2, -0.3], color: "#166534" }
+    ],
+    // Variant 2: Flower Garden
+    [
+      { geometry: 'box' as const, scale: [1, 0.05, 1], position: [0, 0.02, 0], color: "#14532d" },
+      ...Array.from({length: 8}).map((_, i) => ({
+        geometry: 'sphere' as const, scale: 0.08, position: [(Math.random()-0.5)*0.8, 0.1, (Math.random()-0.5)*0.8] as [number, number, number], 
+        color: ['#f472b6', '#c084fc', '#facc15'][i%3], emissiveIntensity: 0.5
+      }))
+    ]
   ],
   [BuildingType.Windmill]: [
-    { geometry: ['cylinderGeometry', [0.4, 0.5, 0.8, 8]] as [string, any[]], position: [0, 0.4, 0], color: "#78350f" },
-    { geometry: ['coneGeometry', [0.55, 0.4, 8]] as [string, any[]], position: [0, 0.9, 0], color: "#b45309" },
-    { component: WindmillSails, position: [0, 0.7, 0.4] }
+    // Variant 0: Classic Dutch
+    [
+      { geometry: ['cylinderGeometry', [0.4, 0.5, 0.8, 8]] as [string, any[]], position: [0, 0.4, 0], color: "#78350f" },
+      { geometry: ['coneGeometry', [0.55, 0.4, 8]] as [string, any[]], position: [0, 0.9, 0], color: "#b45309" },
+      { component: WindmillSails, position: [0, 0.7, 0.4] }
+    ],
+    // Variant 1: Stone Tower Mill
+    [
+      { geometry: ['cylinderGeometry', [0.35, 0.45, 1.0, 8]] as [string, any[]], position: [0, 0.5, 0], color: "#57534e" },
+      { geometry: ['coneGeometry', [0.5, 0.3, 8]] as [string, any[]], position: [0, 1.15, 0], color: "#451a03" },
+      { component: WindmillSails, position: [0, 0.9, 0.4] }
+    ],
+    // Variant 2: Wooden Post Mill
+    [
+      { geometry: 'box' as const, scale: [0.2, 0.4, 0.2], position: [0, 0.2, 0], color: "#451a03" }, // Base
+      { geometry: 'box' as const, scale: [0.5, 0.6, 0.5], position: [0, 0.6, 0], color: "#fef3c7" }, // Body
+      { geometry: ['coneGeometry', [0.4, 0.4, 4]] as [string, any[]], position: [0, 1.0, 0], rotation: [0, Math.PI/4, 0], color: "#78350f" },
+      { component: WindmillSails, position: [0, 0.7, 0.3] }
+    ]
   ],
   [BuildingType.MagicAcademy]: [
-    { geometry: 'cylinder' as const, scale: [0.7, 1.2, 0.7], position: [0, 0.2, 0], color: "#4c1d95" },
-    { 
-      component: Float, 
-      componentProps: { speed: 3, floatIntensity: 1 }, 
-      children: [
-        { geometry: 'octa' as const, scale: 0.6, position: [0, 1.5, 0], color: "#818cf8", emissive: "#818cf8", emissiveIntensity: 3 }
-      ]
-    }
+    // Variant 0: Floating Crystal Spire
+    [
+      { geometry: 'cylinder' as const, scale: [0.7, 1.2, 0.7], position: [0, 0.2, 0], color: "#4c1d95" },
+      { 
+        component: Float, 
+        componentProps: { speed: 3, floatIntensity: 1 }, 
+        children: [
+          { geometry: 'octa' as const, scale: 0.6, position: [0, 1.5, 0], color: "#818cf8", emissive: "#818cf8", emissiveIntensity: 3 }
+        ]
+      }
+    ],
+    // Variant 1: Twin Towers
+    [
+      { geometry: 'box' as const, scale: [0.8, 0.4, 0.6], position: [0, 0.2, 0], color: "#312e81" },
+      { geometry: ['cylinderGeometry', [0.15, 0.2, 1.2, 6]] as [string, any[]], position: [-0.25, 0.6, 0], color: "#4c1d95" },
+      { geometry: ['cylinderGeometry', [0.15, 0.2, 1.2, 6]] as [string, any[]], position: [0.25, 0.6, 0], color: "#4c1d95" },
+      { geometry: ['coneGeometry', [0.25, 0.4, 6]] as [string, any[]], position: [-0.25, 1.3, 0], color: "#c084fc" },
+      { geometry: ['coneGeometry', [0.25, 0.4, 6]] as [string, any[]], position: [0.25, 1.3, 0], color: "#c084fc" },
+    ],
+    // Variant 2: The Orrery
+    [
+      { geometry: 'cylinder' as const, scale: [0.6, 0.6, 0.6], position: [0, 0.3, 0], color: "#1e1b4b" },
+      { 
+        component: Float, 
+        componentProps: { speed: 1, floatIntensity: 0.2 },
+        children: [
+          { geometry: 'torus' as const, scale: 0.5, position: [0, 0.8, 0], rotation: [Math.PI/3, 0, 0], color: "#fbbf24", metalness: 1 },
+          { geometry: 'sphere' as const, scale: 0.15, position: [0, 0.8, 0], color: "#60a5fa", emissive: "#3b82f6", emissiveIntensity: 2 }
+        ]
+      }
+    ]
   ],
   [BuildingType.PowerPlant]: [
-    { geometry: 'cylinder' as const, scale: [0.5, 1.8, 0.5], position: [0, 0.4, 0], color: "#7c3aed" },
-    { geometry: ['cylinderGeometry', [0.1, 0.1, 0.8, 8]] as [string, any[]], position: [0.2, 0.8, 0.2], color: "#1e1b4b" },
-    { component: SmokeEmitter, position: [0.2, 1.3, 0.2] },
-    { 
-      component: Float, 
-      componentProps: { speed: 5, floatIntensity: 1.5 },
-      children: [
-        { geometry: 'sphere' as const, scale: 0.15, position: [0, 2.2, 0], color: "#f472b6", emissive: "#f472b6", emissiveIntensity: 4 }
-      ]
-    }
+    // Variant 0: Industrial Mage Tower
+    [
+      { geometry: 'cylinder' as const, scale: [0.5, 1.8, 0.5], position: [0, 0.4, 0], color: "#7c3aed" },
+      { geometry: ['cylinderGeometry', [0.1, 0.1, 0.8, 8]] as [string, any[]], position: [0.2, 0.8, 0.2], color: "#1e1b4b" },
+      { component: SmokeEmitter, position: [0.2, 1.3, 0.2] },
+      { 
+        component: Float, 
+        componentProps: { speed: 5, floatIntensity: 1.5 },
+        children: [
+          { geometry: 'sphere' as const, scale: 0.15, position: [0, 2.2, 0], color: "#f472b6", emissive: "#f472b6", emissiveIntensity: 4 }
+        ]
+      }
+    ],
+    // Variant 1: Arcane Pylons
+    [
+      { geometry: 'box' as const, scale: [1, 0.2, 1], position: [0, 0.1, 0], color: "#2e1065" },
+      { geometry: 'octa' as const, scale: [0.3, 1.2, 0.3], position: [-0.3, 0.7, -0.3], color: "#8b5cf6", emissive: "#7c3aed", emissiveIntensity: 1 },
+      { geometry: 'octa' as const, scale: [0.3, 1.2, 0.3], position: [0.3, 0.7, 0.3], color: "#8b5cf6", emissive: "#7c3aed", emissiveIntensity: 1 },
+      { component: ForestWisps } // Reused for magic particles
+    ],
+    // Variant 2: Void Crystal
+    [
+      { geometry: 'cone' as const, scale: [0.8, 0.5, 4], position: [0, 0.25, 0], rotation: [0, 0, Math.PI], color: "#1e1b4b" }, // Floating base
+      { 
+        component: Float, 
+        componentProps: { speed: 2, floatIntensity: 0.5 }, 
+        children: [
+          { geometry: 'octa' as const, scale: 0.7, position: [0, 1.2, 0], color: "#d8b4fe", emissive: "#c084fc", emissiveIntensity: 2, transparent: true, opacity: 0.8 }
+        ]
+      }
+    ]
   ],
   [BuildingType.Landmark]: [
-    { 
-      position: [0, 0, 0], scale: 1.4, children: [
-        { geometry: 'box' as const, scale: [1.4, 0.8, 1.4], position: [0, 0.2, 0], useConfigColor: true },
-        { geometry: 'cone' as const, scale: [1, 0.8, 1], position: [0, 1, 0], rotation: [0, Math.PI/4, 0], color: "#991b1b" }
-      ]
-    }
+    // Variant 0: The Grand Spire
+    [
+      { 
+        position: [0, 0, 0], scale: 1.4, children: [
+          { geometry: 'box' as const, scale: [1.4, 0.8, 1.4], position: [0, 0.2, 0], useConfigColor: true },
+          { geometry: 'cone' as const, scale: [1, 0.8, 1], position: [0, 1, 0], rotation: [0, Math.PI/4, 0], color: "#991b1b" },
+          { geometry: 'cylinder' as const, scale: [0.2, 1.2, 0.2], position: [0.5, 0.8, 0.5], color: "#b91c1c" },
+          { geometry: 'cone' as const, scale: [0.3, 0.4, 8], position: [0.5, 1.5, 0.5], color: "#7f1d1d" }
+        ] as BuildingPart[]
+      } as BuildingPart
+    ],
+    // Variant 1: Royal Keep
+    [
+      { geometry: 'box' as const, scale: [1.2, 0.6, 1.2], position: [0, 0.3, 0], useConfigColor: true },
+      // 4 Towers
+      ...[[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]].map(p => ({
+        geometry: ['cylinderGeometry', [0.2, 0.25, 1.2, 8]] as [string, any[]], position: [p[0], 0.6, p[1]] as [number, number, number], color: "#78350f"
+      })),
+      { geometry: ['coneGeometry', [0.6, 0.8, 4]] as [string, any[]], position: [0, 0.8, 0], rotation: [0, Math.PI/4, 0], color: "#991b1b" }
+    ],
+    // Variant 2: Floating Citadel
+    [
+       { 
+        component: Float, 
+        componentProps: { speed: 1, floatIntensity: 0.2 }, 
+        children: [
+          { geometry: 'octa' as const, scale: 0.6, position: [0, 0.6, 0], color: "#f59e0b" },
+          { geometry: 'box' as const, scale: [1.2, 0.2, 1.2], position: [0, 0.6, 0], color: "#b45309" },
+          { geometry: 'cone' as const, scale: [0.5, 1, 8], position: [0, 1.2, 0], color: "#92400e" }
+        ]
+       }
+    ]
+  ],
+  [BuildingType.WaterTower]: [
+    // Variant 0: Ancient Well
+    [
+      { geometry: ['cylinderGeometry', [0.5, 0.5, 0.4, 8]] as [string, any[]], position: [0, 0.2, 0], color: "#64748b" },
+      { geometry: ['cylinderGeometry', [0.4, 0.4, 0.1, 8]] as [string, any[]], position: [0, 0.3, 0], color: "#3b82f6", emissive: "#2563eb", emissiveIntensity: 0.5 },
+      { geometry: 'box' as const, scale: [0.1, 0.8, 0.1], position: [-0.4, 0.6, 0], color: "#475569" },
+      { geometry: 'box' as const, scale: [0.1, 0.8, 0.1], position: [0.4, 0.6, 0], color: "#475569" },
+      { geometry: ['coneGeometry', [0.6, 0.3, 4]] as [string, any[]], position: [0, 1.0, 0], rotation: [0, Math.PI/4, 0], color: "#334155" }
+    ],
+    // Variant 1: Mystic Fountain
+    [
+      { geometry: ['cylinderGeometry', [0.6, 0.4, 0.2, 8]] as [string, any[]], position: [0, 0.1, 0], useConfigColor: true },
+      { geometry: 'sphere' as const, scale: 0.3, position: [0, 0.5, 0], color: "#93c5fd", emissive: "#60a5fa", emissiveIntensity: 1 },
+      { 
+        component: Float, componentProps: { speed: 4, floatIntensity: 0.2 },
+        children: [{ geometry: 'octa' as const, scale: 0.15, position: [0, 0.9, 0], color: "#bfdbfe" }]
+      }
+    ],
+    // Variant 2: Aqueduct Pillar
+    [
+      { geometry: 'box' as const, scale: [0.4, 1.2, 0.4], position: [0, 0.6, 0], color: "#cbd5e1" },
+      { geometry: 'box' as const, scale: [1.2, 0.3, 0.5], position: [0, 1.2, 0], color: "#94a3b8" },
+      { geometry: 'box' as const, scale: [1.2, 0.1, 0.3], position: [0, 1.3, 0], color: "#3b82f6" } // Water channel
+    ]
+  ],
+  [BuildingType.PoliceStation]: [
+    // Variant 0: Watchtower
+    [
+      { geometry: 'box' as const, scale: [0.5, 1.2, 0.5], position: [0, 0.6, 0], color: "#94a3b8" },
+      { geometry: 'box' as const, scale: [0.6, 0.3, 0.6], position: [0, 1.2, 0], color: "#475569" }, // Battlements
+      { geometry: 'box' as const, scale: [0.05, 0.6, 0.05], position: [0.2, 1.4, 0.2], color: "#cbd5e1" }, // Flagpole
+    ],
+    // Variant 1: Barracks
+    [
+      { geometry: 'box' as const, scale: [1.0, 0.5, 0.8], position: [0, 0.25, 0], color: "#64748b" },
+      { geometry: 'box' as const, scale: [0.4, 0.7, 0.4], position: [-0.3, 0.35, 0.2], color: "#475569" }, // Small tower
+      { geometry: ['coneGeometry', [0.3, 0.4, 4]] as [string, any[]], position: [-0.3, 0.8, 0.2], rotation: [0, Math.PI/4, 0], color: "#1e293b" }
+    ],
+    // Variant 2: Gatehouse
+    [
+      { geometry: 'box' as const, scale: [0.3, 0.8, 0.4], position: [-0.3, 0.4, 0], color: "#475569" },
+      { geometry: 'box' as const, scale: [0.3, 0.8, 0.4], position: [0.3, 0.4, 0], color: "#475569" },
+      { geometry: 'box' as const, scale: [0.4, 0.2, 0.2], position: [0, 0.6, 0], color: "#64748b" }, // Bridge
+    ]
+  ],
+  [BuildingType.FireStation]: [
+    // Variant 0: Red Spire
+    [
+      { geometry: ['cylinderGeometry', [0.4, 0.5, 0.6, 6]] as [string, any[]], position: [0, 0.3, 0], color: "#be123c" },
+      { geometry: ['coneGeometry', [0.5, 0.8, 6]] as [string, any[]], position: [0, 1.0, 0], color: "#881337" },
+      { 
+        component: Float, componentProps: { speed: 2, floatIntensity: 0.3 },
+        children: [{ geometry: 'sphere' as const, scale: 0.15, position: [0, 1.5, 0], color: "#fb7185", emissive: "#f43f5e", emissiveIntensity: 2 }]
+      }
+    ],
+    // Variant 1: Protection Dome
+    [
+      { geometry: 'box' as const, scale: [1, 0.2, 1], position: [0, 0.1, 0], color: "#881337" },
+      { geometry: ['sphereGeometry', [0.5, 16, 16, 0, Math.PI*2, 0, Math.PI/2]] as [string, any[]], position: [0, 0.2, 0], color: "#e11d48", opacity: 0.7, transparent: true }
+    ],
+    // Variant 2: Runestone Circle
+    [
+       { geometry: 'cylinder' as const, scale: [0.8, 0.8, 0.05] as [number, number, number], position: [0, 0.025, 0], color: "#4c0519" },
+       ...[0, 1, 2].map(i => ({
+         geometry: 'box' as const, scale: [0.15, 0.6, 0.15] as [number, number, number], position: [Math.cos(i*2.1)*0.3, 0.3, Math.sin(i*2.1)*0.3] as [number, number, number], color: "#be123c", rotation: [0, i, 0] as [number, number, number]
+       })),
+       { component: ForestWisps }
+    ]
+  ],
+  [BuildingType.School]: [
+    // Variant 0: Library Wing
+    [
+      { geometry: 'box' as const, scale: [1.2, 0.6, 0.8], position: [0, 0.3, 0], useConfigColor: true },
+      { geometry: ['coneGeometry', [0.8, 0.5, 4]] as [string, any[]], position: [0, 0.8, 0], rotation: [0, Math.PI/4, 0], color: "#064e3b" },
+      { geometry: 'box' as const, scale: [0.3, 0.1, 0.1], position: [0, 0.7, 0.4], color: "#fbbf24" } // Clock
+    ],
+    // Variant 1: Lecture Hall (Round)
+    [
+      { geometry: ['cylinderGeometry', [0.6, 0.6, 0.5, 8]] as [string, any[]], position: [0, 0.25, 0], useConfigColor: true },
+      { geometry: ['coneGeometry', [0.7, 0.4, 8]] as [string, any[]], position: [0, 0.7, 0], color: "#065f46" }
+    ],
+    // Variant 2: Campus Green
+    [
+      { geometry: 'box' as const, scale: [0.4, 0.8, 0.4], position: [-0.3, 0.4, -0.3], useConfigColor: true },
+      { geometry: 'box' as const, scale: [0.4, 0.6, 0.4], position: [0.3, 0.3, 0.3], useConfigColor: true },
+      { geometry: 'box' as const, scale: [1.2, 0.05, 1.2], position: [0, 0.02, 0], color: "#064e3b" } // Grass base
+    ]
+  ],
+  [BuildingType.LumberMill]: [
+    // Variant 0: Saw Shed
+    [
+      { geometry: 'box' as const, scale: [1, 0.1, 1], position: [0, 0.05, 0], color: "#78350f" },
+      { geometry: 'box' as const, scale: [0.8, 0.5, 0.5], position: [-0.1, 0.3, -0.2], useConfigColor: true },
+      { geometry: ['cylinderGeometry', [0.3, 0.3, 0.05, 16]] as [string, any[]], position: [0.2, 0.3, 0.3], rotation: [Math.PI/2, 0, 0], color: "#cbd5e1", metalness: 0.8 } // Saw blade
+    ],
+    // Variant 1: Log Piles
+    [
+      { geometry: 'box' as const, scale: [0.5, 0.6, 0.5], position: [-0.2, 0.3, -0.2], useConfigColor: true },
+      ...[0, 1, 2].map(i => ({
+        geometry: ['cylinderGeometry', [0.1, 0.1, 0.8, 8]] as [string, any[]], position: [0.2, 0.1 + i*0.1, 0.2] as [number, number, number], rotation: [0, 0, Math.PI/2] as [number, number, number], color: "#78350f"
+      }))
+    ],
+    // Variant 2: Tree Stump Workshop
+    [
+      { geometry: ['cylinderGeometry', [0.5, 0.6, 0.5, 8]] as [string, any[]], position: [0, 0.25, 0], color: "#3f2305" },
+      { geometry: 'box' as const, scale: [0.4, 0.3, 0.4], position: [0, 0.6, 0], color: "#78350f" }
+    ]
+  ],
+  [BuildingType.Bakery]: [
+    // Variant 0: Giant Oven
+    [
+      { geometry: 'box' as const, scale: [0.8, 0.5, 0.8], position: [0, 0.25, 0], useConfigColor: true },
+      { geometry: 'box' as const, scale: [0.3, 0.8, 0.3], position: [0.2, 0.5, -0.2], color: "#78350f" }, // Chimney
+      { component: SmokeEmitter, position: [0.2, 1.0, -0.2] }
+    ],
+    // Variant 1: Pie Shop
+    [
+      { geometry: ['cylinderGeometry', [0.5, 0.5, 0.4, 8]] as [string, any[]], position: [0, 0.2, 0], color: "#fed7aa" },
+      { geometry: ['coneGeometry', [0.6, 0.4, 8]] as [string, any[]], position: [0, 0.6, 0], color: "#c2410c" }
+    ],
+    // Variant 2: Millstone Attached
+    [
+      { geometry: 'box' as const, scale: [0.7, 0.5, 0.5], position: [-0.1, 0.25, 0], useConfigColor: true },
+      { geometry: ['cylinderGeometry', [0.25, 0.25, 0.1, 12]] as [string, any[]], position: [0.3, 0.1, 0.3], color: "#a8a29e" }
+    ]
+  ],
+  [BuildingType.Library]: [
+    // Variant 0: Grand Archive
+    [
+      { geometry: 'box' as const, scale: [1.2, 0.4, 0.8], position: [0, 0.2, 0], useConfigColor: true },
+      { geometry: 'box' as const, scale: [0.8, 0.6, 0.6], position: [0, 0.7, 0], useConfigColor: true },
+      { geometry: ['coneGeometry', [0.5, 0.4, 4]] as [string, any[]], position: [0, 1.2, 0], rotation: [0, Math.PI/4, 0], color: "#1e3a8a" }
+    ],
+    // Variant 1: Scroll Tower
+    [
+      { geometry: ['cylinderGeometry', [0.4, 0.4, 1.2, 8]] as [string, any[]], position: [0, 0.6, 0], useConfigColor: true },
+      { geometry: ['coneGeometry', [0.5, 0.4, 8]] as [string, any[]], position: [0, 1.4, 0], color: "#172554" }
+    ],
+    // Variant 2: Scriptorium
+    [
+      { geometry: 'box' as const, scale: [0.9, 0.5, 0.9], position: [0, 0.25, 0], useConfigColor: true },
+      { geometry: 'box' as const, scale: [0.4, 0.1, 0.4], position: [0, 0.6, 0], color: "#bfdbfe" } // Skylight
+    ]
+  ],
+  [BuildingType.LuminaBloom]: [
+    // Variant 0: Giant Radiant Flower
+    [
+      { geometry: ['cylinderGeometry', [0.05, 0.08, 0.8, 6]] as [string, any[]], position: [0, 0.4, 0], color: "#14532d" },
+      { 
+        component: Float, componentProps: { speed: 2, floatIntensity: 0.3 },
+        children: [{ geometry: 'sphere' as const, scale: 0.3, position: [0, 1.0, 0], color: "#d946ef", emissive: "#f0abfc", emissiveIntensity: 1.5 }]
+      }
+    ],
+    // Variant 1: Mushroom Cluster
+    [
+      ...[0, 1, 2].map(i => ({
+        position: [Math.cos(i*2.1)*0.3, 0, Math.sin(i*2.1)*0.3] as [number, number, number],
+        children: [
+          { geometry: ['cylinderGeometry', [0.04, 0.06, 0.4, 6]] as [string, any[]], position: [0, 0.2, 0], color: "#fdf4ff" },
+          { geometry: ['coneGeometry', [0.2, 0.2, 6]] as [string, any[]], position: [0, 0.4, 0], color: "#c084fc", emissive: "#d8b4fe", emissiveIntensity: 1 }
+        ] as BuildingPart[]
+      } as BuildingPart))
+    ],
+    // Variant 2: Floating Orbs
+    [
+      { component: ForestWisps }
+    ]
   ],
   [BuildingType.GrandObservatory]: [
     { geometry: ['cylinderGeometry', [0.9, 0.4, 0.9]] as [string, any[]], position: [0, 0, 0], color: "#1e1b4b" },

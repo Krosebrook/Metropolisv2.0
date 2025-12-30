@@ -174,9 +174,10 @@ interface UIOverlayProps {
   newsFeed: any[];
   grid: Grid;
   onPanelStateChange: (open: boolean) => void;
+  onInstall?: () => void; // Added for PWA
 }
 
-const UIOverlay: React.FC<UIOverlayProps> = ({ stats, selectedTool, onSelectTool, currentGoal, newsFeed, grid, onPanelStateChange }) => {
+const UIOverlay: React.FC<UIOverlayProps> = ({ stats, selectedTool, onSelectTool, currentGoal, newsFeed, grid, onPanelStateChange, onInstall }) => {
   const [isAdvisorOpen, setIsAdvisorOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('abodes');
 
@@ -226,13 +227,26 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ stats, selectedTool, onSelectTool
           <RoyalDecree goal={currentGoal} />
         </div>
 
-        {/* Wizard Advisor Trigger */}
-        <button 
-          onClick={() => setIsAdvisorOpen(true)}
-          className="pointer-events-auto bg-fuchsia-950/40 hover:bg-fuchsia-900/60 border-2 border-fuchsia-500/40 p-4 rounded-3xl backdrop-blur-md shadow-[0_0_40px_rgba(217,70,239,0.2)] group transition-all"
-        >
-          <div className="text-3xl animate-pulse group-hover:scale-110 transition-transform">🧙‍♂️</div>
-        </button>
+        {/* Top Right Buttons */}
+        <div className="flex flex-col items-end gap-4 pointer-events-auto">
+          {/* PWA Install Button */}
+          {onInstall && (
+            <button 
+              onClick={onInstall}
+              className="bg-amber-600/90 hover:bg-amber-500 text-stone-950 px-4 py-2 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-[0_0_30px_rgba(245,158,11,0.3)] animate-bounce"
+            >
+              📜 Summon App to Home
+            </button>
+          )}
+
+          {/* Wizard Advisor Trigger */}
+          <button 
+            onClick={() => setIsAdvisorOpen(true)}
+            className="bg-fuchsia-950/40 hover:bg-fuchsia-900/60 border-2 border-fuchsia-500/40 p-4 rounded-3xl backdrop-blur-md shadow-[0_0_40px_rgba(217,70,239,0.2)] group transition-all"
+          >
+            <div className="text-3xl animate-pulse group-hover:scale-110 transition-transform">🧙‍♂️</div>
+          </button>
+        </div>
       </div>
 
       {/* Main Toolbelt */}

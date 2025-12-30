@@ -52,6 +52,9 @@ function App() {
   const [currentGoal, setCurrentGoal] = useState<AIGoal | null>(null);
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   const gridRef = useRef(grid);
   const statsRef = useRef(stats);
@@ -68,7 +71,26 @@ function App() {
       setGrid(profile.grid);
       setStats(profile.stats);
     }
+
+    // Handle PWA Install Prompt
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      console.log('User accepted the install prompt');
+    }
+    setDeferredPrompt(null);
+  };
 
   // Main simulation tick
   useEffect(() => {
@@ -178,7 +200,18 @@ function App() {
     <div className="relative w-screen h-screen overflow-hidden bg-slate-950">
       <IsoMap grid={grid} onTileClick={handleTileClick} onSelectTool={setSelectedTool} time={stats.time} weather={stats.weather} isLocked={isPanelOpen || isConsoleOpen} />
       {!gameStarted && <StartScreen onStart={(ai) => { setAiEnabled(ai); setGameStarted(true); }} />}
-      {gameStarted && <UIOverlay stats={stats} selectedTool={selectedTool} onSelectTool={setSelectedTool} currentGoal={currentGoal} newsFeed={newsFeed} grid={grid} onPanelStateChange={setIsPanelOpen} />}
+      {gameStarted && (
+        <UIOverlay 
+          stats={stats} 
+          selectedTool={selectedTool} 
+          onSelectTool={setSelectedTool} 
+          currentGoal={currentGoal} 
+          newsFeed={newsFeed} 
+          grid={grid} 
+          onPanelStateChange={setIsPanelOpen}
+          onInstall={deferredPrompt ? handleInstallClick : undefined}
+        />
+      )}
       <WizardConsole stats={stats} grid={grid} isOpen={isConsoleOpen} onClose={() => setIsConsoleOpen(false)} onCommand={(cmd, args) => {
         if (cmd === 'gift') setStats(p => ({ ...p, money: p.money + (parseInt(args[0]) || 1000) }));
         if (cmd === 'weather') setStats(p => ({ ...p, weather: args[0] as any || 'rain' }));
