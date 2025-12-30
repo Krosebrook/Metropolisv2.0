@@ -833,8 +833,14 @@ const FairytaleBuilding: React.FC<{ tile: TileData }> = React.memo(({ tile }) =>
   );
 });
 
-const IsoMap = ({ grid, onTileClick, onSelectTool, time, weather, isLocked }: any) => {
+const IsoMap = ({ grid, onTileClick, onSelectTool, selectedTool, time, weather, isLocked }: any) => {
   const [hoveredTile, setHoveredTile] = useState<{x: number, y: number} | null>(null);
+  const [currentVariant, setCurrentVariant] = useState(0);
+
+  // Reset variant when tool changes
+  useEffect(() => {
+    setCurrentVariant(0);
+  }, [selectedTool]);
 
   const textures = useMemo(() => ({
     grass: Array.from({length: 8}, (_, i) => createProceduralTexture('grass', i)),
@@ -847,6 +853,12 @@ const IsoMap = ({ grid, onTileClick, onSelectTool, time, weather, isLocked }: an
     if (weather === 'storm') return { fog: '#1e293b', intensity: 0.4, sky: '#1e1b4b' };
     return { fog: '#0c4a6e', intensity: 1.0, sky: '#e0f2fe' };
   }, [weather]);
+
+  const variantCount = useMemo(() => {
+    if (!selectedTool || !BUILDING_SCHEMAS[selectedTool]) return 1;
+    const schema = BUILDING_SCHEMAS[selectedTool];
+    return Array.isArray(schema[0]) ? schema.length : 1;
+  }, [selectedTool]);
 
   return (
     <div className="absolute inset-0 touch-none bg-stone-950">
@@ -868,7 +880,7 @@ const IsoMap = ({ grid, onTileClick, onSelectTool, time, weather, isLocked }: an
                 <mesh 
                   receiveShadow position={[0, -0.4, 0]} 
                   onPointerEnter={(e) => { e.stopPropagation(); setHoveredTile({x, y}); }}
-                  onPointerDown={(e) => { e.stopPropagation(); if (e.button === 0) onTileClick(x, y); }}
+                  onPointerDown={(e) => { e.stopPropagation(); if (e.button === 0) onTileClick(x, y, currentVariant); }}
                 >
                   <boxGeometry args={[1, 0.4, 1]} />
                   <meshStandardMaterial map={textures.side} roughness={1.0} attach="material-0" />
@@ -891,6 +903,25 @@ const IsoMap = ({ grid, onTileClick, onSelectTool, time, weather, isLocked }: an
           )}
         </group>
       </Canvas>
+      
+      {/* Variant Selector Overlay */}
+      {variantCount > 1 && !isLocked && (
+        <div className="absolute top-32 left-8 z-40 animate-in fade-in slide-in-from-left duration-500">
+          <button 
+            onClick={() => setCurrentVariant((prev) => (prev + 1) % variantCount)}
+            className="group relative flex items-center gap-3 bg-stone-900/80 border-2 border-amber-500/50 hover:border-amber-400 rounded-2xl px-5 py-3 shadow-xl backdrop-blur-md transition-all active:scale-95 hover:bg-stone-800"
+          >
+            <div className="w-10 h-10 rounded-full bg-amber-600/20 border border-amber-500/40 flex items-center justify-center group-hover:bg-amber-500/30 transition-colors">
+              <span className="text-xl">🎨</span>
+            </div>
+            <div className="flex flex-col items-start">
+              <span className="text-[10px] uppercase font-black tracking-widest text-stone-400 group-hover:text-amber-200 transition-colors">Style</span>
+              <span className="text-sm font-bold text-amber-50">Variant {currentVariant + 1}/{variantCount}</span>
+            </div>
+            <div className="absolute -inset-1 rounded-2xl border border-white/10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+          </button>
+        </div>
+      )}
     </div>
   );
 };

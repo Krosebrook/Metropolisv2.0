@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FableRealm: Castle Builder</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#f59e0b">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3721/3721591.png">
     <style>
@@ -30,7 +29,11 @@
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.25.0",
     "three": "https://aistudiocdn.com/three@^0.173.0",
     "@react-three/fiber": "https://aistudiocdn.com/@react-three/fiber@^9.0.0",
-    "@react-three/drei": "https://aistudiocdn.com/@react-three/drei@^10.0.0"
+    "@react-three/drei": "https://aistudiocdn.com/@react-three/drei@^10.0.0",
+    "vite": "https://esm.sh/vite@^7.3.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "vite-plugin-pwa": "https://esm.sh/vite-plugin-pwa@^1.2.0",
+    "dexie": "https://esm.sh/dexie@^4.0.1"
   }
 }
 </script>
@@ -39,16 +42,5 @@
 <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').then(registration => {
-                    console.log('SW registered: ', registration);
-                }).catch(registrationError => {
-                    console.log('SW registration failed: ', registrationError);
-                });
-            });
-        }
-    </script>
 </body>
 </html>

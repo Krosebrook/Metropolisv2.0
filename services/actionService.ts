@@ -18,14 +18,14 @@ export class ActionService {
   /**
    * Dispatches the correct kingdom action based on tool selection
    */
-  static execute(tool: BuildingType, grid: Grid, stats: CityStats, x: number, y: number): ActionResponse {
+  static execute(tool: BuildingType, grid: Grid, stats: CityStats, x: number, y: number, variantIndex: number = 0): ActionResponse {
     switch (tool) {
       case BuildingType.Upgrade:
         return this.upgradeTile(grid, stats, x, y);
       case BuildingType.None:
         return this.bulldozeTile(grid, stats, x, y);
       default:
-        return this.buildTile(grid, stats, x, y, tool);
+        return this.buildTile(grid, stats, x, y, tool, variantIndex);
     }
   }
 
@@ -66,7 +66,7 @@ export class ActionService {
     };
   }
 
-  static buildTile(grid: Grid, stats: CityStats, x: number, y: number, tool: BuildingType): ActionResponse {
+  static buildTile(grid: Grid, stats: CityStats, x: number, y: number, tool: BuildingType, variantIndex: number): ActionResponse {
     const tile = grid[y][x];
     const config = BUILDINGS[tool];
 
@@ -82,7 +82,7 @@ export class ActionService {
       ...t, 
       buildingType: tool, 
       level: 1,
-      variant: Math.floor(Math.random() * 5)
+      variant: variantIndex
     } : t) : row);
     const newStats = { ...stats, money: stats.money - config.cost };
 

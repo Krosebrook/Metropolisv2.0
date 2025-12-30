@@ -66,16 +66,23 @@ function App() {
   }, [grid, stats]);
 
   useEffect(() => {
-    const profile = SaveService.load();
-    if (profile) {
-      setGrid(profile.grid);
-      setStats(profile.stats);
-    }
+    // Async Load
+    const initGame = async () => {
+      const profile = await SaveService.load();
+      if (profile) {
+        setGrid(profile.grid);
+        setStats(profile.stats);
+      }
+    };
+    initGame();
 
     // Handle PWA Install Prompt
     const handleBeforeInstallPrompt = (e: Event) => {
+      // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
+      // Stash the event so it can be triggered later.
       setDeferredPrompt(e);
+      console.log('PWA Install Prompt captured');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -84,11 +91,12 @@ function App() {
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
+    // Show the install prompt
     deferredPrompt.prompt();
+    // Wait for the user to respond to the prompt
     const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      console.log('User accepted the install prompt');
-    }
+    console.log(`User response to install prompt: ${outcome}`);
+    // We've used the prompt, and can't use it again, throw it away
     setDeferredPrompt(null);
   };
 
@@ -100,8 +108,17 @@ function App() {
       const { newStats, newGrid } = SimulationService.calculateTick(gridRef.current, statsRef.current);
       setStats(newStats);
       setGrid(newGrid);
-      if (Math.random() < 0.1 && aiEnabled) generateNewsEvent(statsRef.current, "Prosperity").then(news => news && setNewsFeed(p => [news, ...p].slice(0, 10)));
-      SaveService.save(newGrid, newStats);
+      
+      // AI News Generation
+      if (Math.random() < 0.1 && aiEnabled) {
+        generateNewsEvent(statsRef.current, "Prosperity").then(news => {
+          if (news) setNewsFeed(p => [news, ...p].slice(0, 10));
+        });
+      }
+      
+      // Async Auto-save
+      SaveService.save(newGrid, newStats).catch(err => console.error("Auto-save failed", err));
+      
     }, TICK_RATE_MS);
     return () => clearInterval(interval);
   }, [gameStarted, aiEnabled, isConsoleOpen]);
@@ -186,9 +203,9 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [gameStarted, isConsoleOpen, isPanelOpen]);
 
-  const handleTileClick = useCallback((x: number, y: number) => {
+  const handleTileClick = useCallback((x: number, y: number, variant: number = 0) => {
     if (!gameStarted || isConsoleOpen) return;
-    const result = ActionService.execute(selectedTool, grid, stats, x, y);
+    const result = ActionService.execute(selectedTool, grid, stats, x, y, variant);
     if (result.success) {
       setGrid(result.newGrid);
       setStats(result.newStats);
@@ -198,7 +215,15 @@ function App() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-slate-950">
-      <IsoMap grid={grid} onTileClick={handleTileClick} onSelectTool={setSelectedTool} time={stats.time} weather={stats.weather} isLocked={isPanelOpen || isConsoleOpen} />
+      <IsoMap 
+        grid={grid} 
+        onTileClick={handleTileClick} 
+        selectedTool={selectedTool} 
+        onSelectTool={setSelectedTool} 
+        time={stats.time} 
+        weather={stats.weather} 
+        isLocked={isPanelOpen || isConsoleOpen} 
+      />
       {!gameStarted && <StartScreen onStart={(ai) => { setAiEnabled(ai); setGameStarted(true); }} />}
       {gameStarted && (
         <UIOverlay 
